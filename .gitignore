@@ -34,3 +34,6 @@ replay_pid*
 # OS
 .DS_Store
 Thumbs.db
+
+# Superpowers brainstorming companion (mockups, local only)
+.superpowers/
