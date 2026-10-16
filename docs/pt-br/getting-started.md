@@ -27,6 +27,8 @@ A primeira execução baixa as imagens e leva alguns minutos; as seguintes levam
 
 ## 4. Observar o Steady State
 
+Abra o dashboard em http://127.0.0.1:8080; veja [Dashboard](dashboard.md). O log abaixo mostra o mesmo SPS sem navegador.
+
 ```bash
 docker compose logs -f viewer-simulator
 ```

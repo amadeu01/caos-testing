@@ -6,7 +6,7 @@ A mini-Netflix you can break on purpose. It is a teaching project for a lecture 
 
 You start a small streaming platform on your laptop, watch its Steady State (SPS, Playback Starts per second), inject Faults, and see whether the failure spreads or is contained.
 
-> **Status:** slice 1 of 6. The platform runs and SPS is printed to the log. The dashboard, Faults, Resilience Policies and Experiments arrive in the next slices.
+> **Status:** slice 2 of 6. The platform runs, telemetry measures every Dependency call, and the dashboard shows it live at http://127.0.0.1:8080. Faults, Resilience Policies and Experiments arrive in the next slices.
 
 ## Prerequisites
 
@@ -18,6 +18,7 @@ You start a small streaming platform on your laptop, watch its Steady State (SPS
 
 ```bash
 scripts/platform-up.sh                    # build, start, wait until ready
+# then open http://127.0.0.1:8080
 docker compose logs -f viewer-simulator   # watch SPS
 scripts/platform-down.sh                  # stop everything
 ```
@@ -28,6 +29,8 @@ In IntelliJ, use the run configurations **Platform up**, **SPS log** and **Platf
 
 - [Getting started](docs/en/getting-started.md)
 - [Architecture](docs/en/architecture.md)
+- [Dashboard](docs/en/dashboard.md)
+- [Telemetry](docs/en/telemetry.md)
 - [Glossary](docs/en/glossary.md)
 - Design decisions: [`docs/adr/`](docs/adr/)
 

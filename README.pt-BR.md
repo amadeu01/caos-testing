@@ -6,7 +6,7 @@ Uma mini-Netflix que você quebra de propósito. É um projeto didático para um
 
 Você sobe uma pequena plataforma de streaming no seu notebook, observa o **Steady State** (estado estável) medido por **SPS** (Playback Starts por segundo), injeta **Faults** (falhas) e vê se a falha se espalha ou é contida.
 
-> **Status:** fatia 1 de 6. A plataforma roda e o SPS aparece no log. O dashboard, as Faults, as **Resilience Policies** (políticas de resiliência) e os **Experiments** (experimentos) chegam nas próximas fatias.
+> **Status:** fatia 2 de 6. A plataforma roda, a telemetria mede cada chamada entre Services e o dashboard mostra tudo ao vivo em http://127.0.0.1:8080. Faults, Resilience Policies e Experiments chegam nas próximas fatias.
 
 ## Pré-requisitos
 
@@ -18,6 +18,7 @@ Você sobe uma pequena plataforma de streaming no seu notebook, observa o **Stea
 
 ```bash
 scripts/platform-up.sh                    # compila, sobe e espera ficar pronto
+# depois abra http://127.0.0.1:8080
 docker compose logs -f viewer-simulator   # acompanhe o SPS
 scripts/platform-down.sh                  # para tudo
 ```
@@ -28,6 +29,8 @@ No IntelliJ, use as configurações de execução **Platform up**, **SPS log** e
 
 - [Primeiros passos](docs/pt-br/getting-started.md)
 - [Arquitetura](docs/pt-br/architecture.md)
+- [Dashboard](docs/pt-br/dashboard.md)
+- [Telemetria](docs/pt-br/telemetry.md)
 - [Glossário](docs/pt-br/glossary.md)
 - Decisões de design: [`docs/adr/`](docs/adr/) (em inglês)
 

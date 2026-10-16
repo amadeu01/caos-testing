@@ -45,12 +45,16 @@ Os Services usam o AWS SDK v2 de verdade, apontado para emuladores locais: Dynam
 
 Cada Service da plataforma atende requisições em um pool pequeno e limitado de 16 threads. É proposital: assim uma Dependency lenta esgota visivelmente um Service no **Act** 4 (ato: um passo roteirizado da aula). Veja o [ADR 0002](../adr/0002-fixed-platform-thread-pools.md) (em inglês).
 
+## Medindo cada chamada
+
+Toda chamada a uma Dependency passa por `DependencyCalls`, que a reporta ao `telemetry`; veja [Telemetria](telemetry.md). O dashboard desenha o que o telemetry sabe; veja [Dashboard](dashboard.md).
+
 ## Organização do repositório
 
 | Caminho | Conteúdo |
 |---|---|
 | `platform/` | os 8 Services da plataforma (alvos de Faults) |
-| `control-plane/` | viewer-simulator; depois chaos-controller, telemetry e dashboard |
-| `libs/` | código compartilhado; hoje só recursos de teste |
+| `control-plane/` | viewer-simulator, telemetry e dashboard; o chaos-controller vem depois |
+| `libs/` | recursos de teste e lib-telemetry (o ponto único DependencyCalls) |
 | `infra/` | configuração dos emuladores e criação de tabelas |
 | `scripts/`, `.run/` | subir e parar, pelo terminal ou pelo IntelliJ |
