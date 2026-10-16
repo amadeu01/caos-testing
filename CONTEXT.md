@@ -4,6 +4,14 @@ A simulated streaming platform (modelled on Netflix) used in a lecture to show s
 
 ## System under test
 
+**Viewer**:
+A simulated person using the platform: loads the home page, picks a title and starts playback.
+_Avoid_: User, client, customer, request
+
+**Playback Start**:
+A Viewer journey that completes: home page loaded, title picked, licensed stream returned. A failure anywhere in the journey means no Playback Start.
+_Avoid_: Play, stream, play request
+
 **Service**:
 One independently running part of the streaming platform with a single responsibility (for example recommendations or playback).
 _Avoid_: Microservice, node, component, container
@@ -39,12 +47,16 @@ The normal, measurable behaviour of the whole platform as seen by viewers, expre
 _Avoid_: Baseline, healthy state
 
 **SPS**:
-Starts Per Second: the number of successful playback starts per second. The single business metric that defines Steady State.
+Starts Per Second: the number of Playback Starts per second. The single business metric that defines Steady State.
 _Avoid_: Streams per second, throughput, RPS
 
 **Fault**:
 A deliberately introduced real-world failure: a Service being stopped, a Dependency becoming slow, or a Dependency returning errors.
 _Avoid_: Chaos, attack, injection
+
+**Ad-hoc Fault**:
+A Fault started by hand, outside any Experiment, affecting every Viewer. It has no Hypothesis and no Verdict.
+_Avoid_: Manual chaos, Chaos Monkey run
 
 **Experiment**:
 A written, repeatable test that states a Hypothesis, introduces a Fault within a Blast Radius, observes SPS and ends with a Verdict.
@@ -73,3 +85,9 @@ _Avoid_: Kill switch, stop condition
 **Verdict**:
 The outcome of an Experiment: the Hypothesis held, the Hypothesis was disproved, or the Experiment was aborted.
 _Avoid_: Result, status
+
+## Lecture
+
+**Act**:
+One scripted step of the lecture, defined by a preset of Faults and Resilience Policies and the outcome students should observe.
+_Avoid_: Scene, demo step, scenario
