@@ -61,6 +61,17 @@ class HttpBatchSenderTest {
     }
 
     @Test
+    void stalledResponseBodyStillEndsTheSend() {
+        telemetry.stubFor(post("/events").willReturn(aResponse().withStatus(202).withBody("accepted, thank you")
+                .withChunkedDribbleDelay(5, 3000)));
+
+        long start = System.nanoTime();
+        assertThatThrownBy(() -> sender.send(new EventBatch("api", 0, List.of(), List.of())).join())
+                .isInstanceOf(CompletionException.class);
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(1));
+    }
+
+    @Test
     void slowTelemetryTimesOutInsteadOfHanging() {
         telemetry.stubFor(post("/events").willReturn(aResponse().withStatus(202).withFixedDelay(2000)));
 

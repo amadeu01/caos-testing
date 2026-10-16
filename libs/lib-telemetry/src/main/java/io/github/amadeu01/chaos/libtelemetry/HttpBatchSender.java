@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /** POSTs a batch to telemetry asynchronously; the timeout bounds one request, TelemetryBuffer allows only one in flight. */
 final class HttpBatchSender implements BatchSender {
@@ -42,6 +43,6 @@ final class HttpBatchSender implements BatchSender {
             if (response.statusCode() >= 300) {
                 throw new IllegalStateException("telemetry answered " + response.statusCode());
             }
-        });
+        }).orTimeout(2 * timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 }

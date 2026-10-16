@@ -61,10 +61,11 @@ public final class TelemetryBuffer {
         if (!inFlight.compareAndSet(false, true)) {
             return;
         }
-        EventBatch batch = drain();
+        EventBatch[] drained = new EventBatch[1];
         CompletableFuture<Void> sent;
         try {
-            sent = sender.send(batch);
+            drained[0] = drain();
+            sent = sender.send(drained[0]);
             if (sent == null) {
                 sent = CompletableFuture.failedFuture(new IllegalStateException("sender returned no future"));
             }
@@ -72,8 +73,8 @@ public final class TelemetryBuffer {
             sent = CompletableFuture.failedFuture(e);
         }
         sent.whenComplete((ignored, failure) -> {
-            if (failure != null) {
-                dropped.addAndGet(batch.eventCount() + batch.dropped());
+            if (failure != null && drained[0] != null) {
+                dropped.addAndGet(drained[0].eventCount() + drained[0].dropped());
             }
             inFlight.set(false);
         });
