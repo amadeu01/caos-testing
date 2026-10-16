@@ -16,6 +16,7 @@
         <module>platform/recommendations</module>
         <module>platform/profile</module>
         <module>control-plane/viewer-simulator</module>
+        <module>platform/playback</module>
     </modules>
 
     <properties>
