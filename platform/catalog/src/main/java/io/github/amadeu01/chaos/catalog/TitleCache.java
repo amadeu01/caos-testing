@@ -3,6 +3,7 @@ package io.github.amadeu01.chaos.catalog;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,14 +24,16 @@ public class TitleCache {
 
     private final ValueCommands<String, String> values;
     private final ObjectMapper mapper;
+    private final DependencyCalls calls;
 
-    TitleCache(RedisDataSource redis, ObjectMapper mapper) {
+    TitleCache(RedisDataSource redis, ObjectMapper mapper, DependencyCalls calls) {
         this.values = redis.value(String.class);
         this.mapper = mapper;
+        this.calls = calls;
     }
 
     public Optional<List<Title>> get() {
-        String json = values.get(KEY);
+        String json = calls.call("cache", () -> values.get(KEY));
         if (json == null) {
             return Optional.empty();
         }
@@ -43,10 +46,12 @@ public class TitleCache {
     }
 
     public void put(List<Title> titles) {
+        String json;
         try {
-            values.setex(KEY, TTL_SECONDS, mapper.writeValueAsString(titles));
+            json = mapper.writeValueAsString(titles);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Titles must always serialise", e);
         }
+        calls.run("cache", () -> values.setex(KEY, TTL_SECONDS, json));
     }
 }

@@ -2,6 +2,7 @@ package io.github.amadeu01.chaos.ratingsworker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -37,6 +38,9 @@ public class RatingConsumer {
     @Inject
     ObjectMapper mapper;
 
+    @Inject
+    DependencyCalls calls;
+
     @ConfigProperty(name = "ratings.queue-name")
     String queueName;
 
@@ -45,14 +49,14 @@ public class RatingConsumer {
     @Scheduled(every = "1s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void poll() {
         for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
-            List<Message> messages = sqs.receiveMessage(request -> request.queueUrl(queueUrl())
-                    .maxNumberOfMessages(BATCH_SIZE)).messages();
+            List<Message> messages = calls.call("queue", () -> sqs.receiveMessage(request -> request.queueUrl(queueUrl())
+                    .maxNumberOfMessages(BATCH_SIZE)).messages());
             if (messages.isEmpty()) {
                 return;
             }
             for (Message message : messages) {
                 handle(message);
-                sqs.deleteMessage(request -> request.queueUrl(queueUrl()).receiptHandle(message.receiptHandle()));
+                calls.run("queue", () -> sqs.deleteMessage(request -> request.queueUrl(queueUrl()).receiptHandle(message.receiptHandle())));
             }
         }
     }
@@ -69,11 +73,11 @@ public class RatingConsumer {
             LOG.warnf("Dropping malformed rating message %s", message.messageId());
             return;
         }
-        dynamo.putItem(request -> request.tableName(TABLE).item(Map.of(
+        calls.run("store", () -> dynamo.putItem(request -> request.tableName(TABLE).item(Map.of(
                 "id", AttributeValue.fromS(message.messageId()),
                 "viewerId", AttributeValue.fromS(rating.viewerId()),
                 "titleId", AttributeValue.fromS(rating.titleId()),
-                "stars", AttributeValue.fromN(Integer.toString(rating.stars())))));
+                "stars", AttributeValue.fromN(Integer.toString(rating.stars()))))));
     }
 
     private static boolean isValid(Rating rating) {

@@ -1,5 +1,6 @@
 package io.github.amadeu01.chaos.catalog;
 
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -19,20 +20,23 @@ public class TitleRepository {
     @Inject
     DynamoDbClient dynamo;
 
+    @Inject
+    DependencyCalls calls;
+
     public void saveAll(List<Title> titles) {
-        titles.forEach(title -> dynamo.putItem(request -> request.tableName(TABLE).item(toItem(title))));
+        titles.forEach(title -> calls.run("store", () -> dynamo.putItem(request -> request.tableName(TABLE).item(toItem(title)))));
     }
 
     public List<Title> findAll() {
-        return dynamo.scan(request -> request.tableName(TABLE)).items().stream()
+        return calls.call("store", () -> dynamo.scan(request -> request.tableName(TABLE))).items().stream()
                 .map(TitleRepository::fromItem)
                 .sorted(Comparator.comparing(Title::id))
                 .toList();
     }
 
     public Optional<Title> findById(String id) {
-        Map<String, AttributeValue> item = dynamo.getItem(request -> request.tableName(TABLE)
-                .key(Map.of("id", AttributeValue.fromS(id)))).item();
+        Map<String, AttributeValue> item = calls.call("store", () -> dynamo.getItem(request -> request.tableName(TABLE)
+                .key(Map.of("id", AttributeValue.fromS(id))))).item();
         return item == null || item.isEmpty() ? Optional.empty() : Optional.of(fromItem(item));
     }
 

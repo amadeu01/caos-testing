@@ -1,5 +1,9 @@
 package io.github.amadeu01.chaos.ratingsworker;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import io.github.amadeu01.chaos.testsupport.InjectWireMock;
+import io.github.amadeu01.chaos.testsupport.WireMockResource;
+import io.quarkus.test.common.ResourceArg;
 import io.github.amadeu01.chaos.testsupport.DynamoDbLocalResource;
 import io.github.amadeu01.chaos.testsupport.ElasticMqResource;
 import io.quarkus.test.common.WithTestResource;
@@ -21,13 +25,26 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @WithTestResource(DynamoDbLocalResource.class)
 @WithTestResource(ElasticMqResource.class)
+@WithTestResource(value = WireMockResource.class, initArgs =
+        @ResourceArg(name = WireMockResource.URL_PROPERTIES, value = "telemetry.url"))
 class RatingConsumerTest {
+
+    @InjectWireMock
+    WireMockServer telemetry;
+
+    @Inject
+    io.github.amadeu01.chaos.libtelemetry.Telemetry telemetryClient;
 
     @Inject
     SqsClient sqs;
@@ -113,6 +130,21 @@ class RatingConsumerTest {
             assertThat(storedRatings()).anySatisfy(item -> assertThat(item.get("titleId").s()).isEqualTo("t-fail"));
             assertThat(messagesLeftInQueue()).isZero();
         });
+    }
+
+    @Test
+    void reportsQueueAndStoreCalls() {
+        telemetry.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+        send("{\"viewerId\":\"v-9\",\"titleId\":\"t19\",\"stars\":4}");
+
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            consumer.poll();
+            telemetryClient.flush();
+            telemetry.verify(postRequestedFor(urlEqualTo("/events"))
+                    .withRequestBody(matchingJsonPath("$.calls[?(@.caller == 'ratings-worker' && @.callee == 'store')]")));
+        });
+        telemetry.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'queue')]")));
     }
 
     private void send(String body) {
