@@ -1,0 +1,96 @@
+name: chaos-lecture-demo
+
+# Shared settings for every Quarkus container.
+x-quarkus: &quarkus
+  restart: unless-stopped
+  mem_limit: 256m
+  environment:
+    JAVA_OPTS: "-XX:MaxRAMPercentage=70"
+  healthcheck:
+    # The JRE image has bash but no curl, so the probe speaks HTTP over /dev/tcp.
+    test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080; printf 'GET /q/health/ready HTTP/1.0\\r\\n\\r\\n' >&3; grep -q UP <&3"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+    start_period: 10s
+
+services:
+  # --- AWS emulators (ADR 0001): one container per AWS service -------------
+  store:
+    image: amazon/dynamodb-local:3.3.2
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    restart: unless-stopped
+
+  store-init:
+    image: amazon/aws-cli:2.38.1
+    entrypoint: ["/bin/sh", "/init/create-tables.sh"]
+    volumes:
+      - ./infra/dynamodb:/init:ro
+    depends_on:
+      - store
+
+  queue:
+    image: softwaremill/elasticmq-native:1.7.1
+    volumes:
+      - ./infra/elasticmq/elasticmq.conf:/opt/elasticmq.conf:ro
+    ports:
+      - "127.0.0.1:9325:9325"   # ElasticMQ web UI: watch the ratings queue
+    restart: unless-stopped
+
+  cache:
+    image: redis:8.8.3
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    restart: unless-stopped
+
+  # --- Platform Services ---------------------------------------------------
+  profile:
+    <<: *quarkus
+    build: { context: ./platform/profile, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+
+  license:
+    <<: *quarkus
+    build: { context: ./platform/license, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+
+  playback:
+    <<: *quarkus
+    build: { context: ./platform/playback, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    depends_on: [license]
+
+  recommendations:
+    <<: *quarkus
+    build: { context: ./platform/recommendations, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+
+  catalog:
+    <<: *quarkus
+    build: { context: ./platform/catalog, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    depends_on:
+      store-init: { condition: service_completed_successfully }
+      cache: { condition: service_started }
+
+  api:
+    <<: *quarkus
+    build: { context: ./platform/api, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    depends_on: [profile, catalog, recommendations, playback, queue]
+
+  edge-gateway:
+    <<: *quarkus
+    build: { context: ./platform/edge-gateway, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    ports:
+      - "127.0.0.1:8000:8080"
+    depends_on: [api]
+
+  ratings-worker:
+    <<: *quarkus
+    build: { context: ./platform/ratings-worker, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    depends_on:
+      store-init: { condition: service_completed_successfully }
+      queue: { condition: service_started }
+
+  # --- Control plane -------------------------------------------------------
+  viewer-simulator:
+    <<: *quarkus
+    build: { context: ./control-plane/viewer-simulator, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    ports:
+      - "127.0.0.1:8090:8080"
+    depends_on:
+      edge-gateway: { condition: service_healthy }
