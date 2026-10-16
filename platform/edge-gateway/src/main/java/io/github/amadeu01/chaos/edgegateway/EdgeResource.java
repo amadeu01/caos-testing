@@ -1,5 +1,6 @@
 package io.github.amadeu01.chaos.edgegateway;
 
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -25,24 +26,27 @@ public class EdgeResource {
     @RestClient
     ApiClient api;
 
+    @Inject
+    DependencyCalls calls;
+
     @GET
     @Path("home")
     public Response home(@QueryParam("viewerId") String viewerId) {
-        return relay(api.home(viewerId));
+        return relay(calls.callHttp("api", () -> api.home(viewerId)));
     }
 
     @POST
     @Path("play")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response play(String body) {
-        return relay(api.play(body));
+        return relay(calls.callHttp("api", () -> api.play(body)));
     }
 
     @POST
     @Path("ratings")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response rate(String body) {
-        return relay(api.rate(body));
+        return relay(calls.callHttp("api", () -> api.rate(body)));
     }
 
     @ServerExceptionMapper

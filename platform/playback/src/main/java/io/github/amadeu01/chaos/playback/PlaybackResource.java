@@ -1,5 +1,6 @@
 package io.github.amadeu01.chaos.playback;
 
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.POST;
@@ -13,12 +14,15 @@ public class PlaybackResource {
     @RestClient
     LicenseClient licenses;
 
+    @Inject
+    DependencyCalls calls;
+
     @POST
     public Playback start(PlaybackRequest request) {
         if (request == null || isBlank(request.viewerId()) || isBlank(request.titleId())) {
             throw new BadRequestException("viewerId and titleId are required");
         }
-        License license = licenses.issue(new LicenseRequest(request.viewerId(), request.titleId()));
+        License license = calls.call("license", () -> licenses.issue(new LicenseRequest(request.viewerId(), request.titleId())));
         return new Playback("https://stream.example/titles/" + request.titleId() + "?license=" + license.licenseId(),
                 license.licenseId());
     }

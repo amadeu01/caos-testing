@@ -10,18 +10,22 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static io.restassured.RestAssured.given;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 @QuarkusTest
 @WithTestResource(value = WireMockResource.class, initArgs =
-        @ResourceArg(name = WireMockResource.URL_PROPERTIES, value = "quarkus.rest-client.license.url"))
+        @ResourceArg(name = WireMockResource.URL_PROPERTIES, value = "quarkus.rest-client.license.url,telemetry.url"))
 class PlaybackResourceTest {
 
     @InjectWireMock
@@ -61,5 +65,17 @@ class PlaybackResourceTest {
                 .when().post("/playbacks")
                 .then().statusCode(400);
         wireMock.verify(0, postRequestedFor(urlEqualTo("/licenses")));
+    }
+
+    @Test
+    void reportsTheCallToLicense() {
+        wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+        wireMock.stubFor(post("/licenses").willReturn(okJson(
+                "{\"licenseId\":\"lic-1\",\"viewerId\":\"v-1\",\"titleId\":\"t07\",\"expiresAt\":\"2030-01-01T00:00:00Z\"}")));
+
+        given().contentType(ContentType.JSON).body("{\"viewerId\":\"v-1\",\"titleId\":\"t07\"}").post("/playbacks");
+
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.caller == 'playback' && @.callee == 'license')]"))));
     }
 }

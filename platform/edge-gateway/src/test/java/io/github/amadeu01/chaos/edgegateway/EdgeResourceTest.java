@@ -11,20 +11,24 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 @WithTestResource(value = WireMockResource.class, initArgs =
-        @ResourceArg(name = WireMockResource.URL_PROPERTIES, value = "quarkus.rest-client.api.url"))
+        @ResourceArg(name = WireMockResource.URL_PROPERTIES, value = "quarkus.rest-client.api.url,telemetry.url"))
 class EdgeResourceTest {
 
     @InjectWireMock
@@ -71,5 +75,27 @@ class EdgeResourceTest {
         given().when().get("/home?viewerId=v-1")
                 .then().statusCode(502)
                 .body("error", equalTo("api unreachable"));
+    }
+
+    @Test
+    void reportsApiServerErrorsAsErrors() {
+        wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+        wireMock.stubFor(get(urlPathEqualTo("/home")).willReturn(aResponse().withStatus(503)));
+
+        given().when().get("/home?viewerId=v-1").then().statusCode(503);
+
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'api' && @.outcome == 'ERROR')]"))));
+    }
+
+    @Test
+    void reportsAnUnreachableApiAsAnError() {
+        wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+        wireMock.stubFor(get(urlPathEqualTo("/home")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+        given().when().get("/home?viewerId=v-1").then().statusCode(502);
+
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'api' && @.outcome == 'ERROR')]"))));
     }
 }
