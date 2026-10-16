@@ -20,6 +20,7 @@
         <module>platform/playback</module>
         <module>platform/edge-gateway</module>
         <module>platform/api</module>
+        <module>platform/ratings-worker</module>
     </modules>
 
     <properties>
