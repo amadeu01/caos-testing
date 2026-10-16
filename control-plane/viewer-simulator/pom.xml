@@ -16,6 +16,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.amadeu01.chaos</groupId>
+            <artifactId>lib-telemetry</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>

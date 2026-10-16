@@ -35,6 +35,9 @@ public class ViewerSimulator {
     @Inject
     ObjectMapper mapper;
 
+    @Inject
+    io.github.amadeu01.chaos.libtelemetry.Telemetry telemetry;
+
     private final SpsCounter sps = new SpsCounter();
     private ScheduledExecutorService ticker;
     private ViewerJourney journey;
@@ -50,7 +53,7 @@ public class ViewerSimulator {
         if (!enabled) {
             return;
         }
-        journey = new ViewerJourney(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build(), mapper, targetUrl);
+        journey = new ViewerJourney(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build(), mapper, targetUrl, telemetry);
         ticker = Executors.newSingleThreadScheduledExecutor();
         ticker.scheduleAtFixedRate(this::launchViewers, 0, 1000 / TICKS_PER_SECOND, TimeUnit.MILLISECONDS);
         LOG.infof("Simulating %d Viewers/s against %s", viewersPerSecond, targetUrl);
@@ -72,6 +75,7 @@ public class ViewerSimulator {
                 journey.run(viewerId).thenAccept(started -> {
                     if (started) {
                         sps.recordStart(System.currentTimeMillis());
+                        telemetry.recordStart();
                     }
                 });
             }

@@ -2,6 +2,8 @@ package io.github.amadeu01.chaos.viewersimulator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.amadeu01.chaos.libtelemetry.CallRecorder;
+import io.github.amadeu01.chaos.libtelemetry.Outcome;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,16 +20,19 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class ViewerJourney {
 
+    static final String EDGE = "edge-gateway";
     static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
     private final HttpClient http;
     private final ObjectMapper mapper;
     private final URI edge;
+    private final CallRecorder recorder;
 
-    public ViewerJourney(HttpClient http, ObjectMapper mapper, URI edge) {
+    public ViewerJourney(HttpClient http, ObjectMapper mapper, URI edge, CallRecorder recorder) {
         this.http = http;
         this.mapper = mapper;
         this.edge = edge;
+        this.recorder = recorder;
     }
 
     public CompletableFuture<Boolean> run(String viewerId) {
@@ -69,7 +74,11 @@ public class ViewerJourney {
     }
 
     private CompletableFuture<HttpResponse<String>> send(HttpRequest.Builder request) {
-        return http.sendAsync(request.timeout(REQUEST_TIMEOUT).build(), HttpResponse.BodyHandlers.ofString());
+        long start = System.nanoTime();
+        return http.sendAsync(request.timeout(REQUEST_TIMEOUT).build(), HttpResponse.BodyHandlers.ofString())
+                .whenComplete((response, failure) -> recorder.recordCall(EDGE,
+                        failure != null || response.statusCode() >= 500 ? Outcome.ERROR : Outcome.OK,
+                        (System.nanoTime() - start) / 1_000_000));
     }
 
     private HttpRequest.Builder postJson(String path, String json) {
