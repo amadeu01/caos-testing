@@ -32,6 +32,7 @@ No IntelliJ, use as configurações de execução **Platform up**, **SPS log** e
 - [Dashboard](docs/pt-br/dashboard.md)
 - [Telemetria](docs/pt-br/telemetry.md)
 - [Glossário](docs/pt-br/glossary.md)
+- [Relatório do Chaos Monkey de 16/10/2026](docs/pt-br/reports/2026-10-16-chaos-monkey-findings.md)
 - Decisões de design: [`docs/adr/`](docs/adr/) (em inglês)
 
 ## Aviso de segurança
