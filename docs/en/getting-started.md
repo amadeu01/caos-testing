@@ -23,7 +23,7 @@ Service tests start real DynamoDB Local, ElasticMQ and Redis containers through 
 scripts/platform-up.sh
 ```
 
-The first run downloads images and takes a few minutes; later runs take about a minute. The script returns when edge-gateway and viewer-simulator are ready.
+The first run downloads images and takes a few minutes; later runs take about a minute. The script returns when edge-gateway, viewer-simulator, telemetry and the dashboard are ready.
 
 ## 4. Watch Steady State
 

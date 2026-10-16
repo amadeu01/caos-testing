@@ -76,6 +76,6 @@ class PlaybackResourceTest {
         given().contentType(ContentType.JSON).body("{\"viewerId\":\"v-1\",\"titleId\":\"t07\"}").post("/playbacks");
 
         await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
-                .withRequestBody(matchingJsonPath("$.calls[?(@.caller == 'playback' && @.callee == 'license')]"))));
+                .withRequestBody(matchingJsonPath("$.calls[?(@.caller == 'playback' && @.callee == 'license' && @.outcome == 'OK')]"))));
     }
 }

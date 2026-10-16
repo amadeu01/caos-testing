@@ -23,7 +23,7 @@ Os testes dos **Services** (serviços) sobem contêineres reais de DynamoDB Loca
 scripts/platform-up.sh
 ```
 
-A primeira execução baixa as imagens e leva alguns minutos; as seguintes levam cerca de um minuto. O script termina quando o edge-gateway e o viewer-simulator estão prontos.
+A primeira execução baixa as imagens e leva alguns minutos; as seguintes levam cerca de um minuto. O script termina quando o edge-gateway, o viewer-simulator, o telemetry e o dashboard estão prontos.
 
 ## 4. Observar o Steady State
 
