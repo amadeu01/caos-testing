@@ -3,7 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-./mvnw -q package -DskipTests
+# --no-build: skip the Maven build (IntelliJ builds first, with the project SDK).
+if [[ "${1:-}" != "--no-build" ]]; then
+  ./mvnw -q package -DskipTests
+fi
 docker compose up -d --build
 
 echo "Waiting for edge-gateway and viewer-simulator..."
