@@ -12,15 +12,15 @@
 
     <modules>
         <module>libs/test-support</module>
-        <module>platform/catalog</module>
-        <module>platform/license</module>
-        <module>platform/recommendations</module>
-        <module>platform/profile</module>
-        <module>control-plane/viewer-simulator</module>
-        <module>platform/playback</module>
         <module>platform/edge-gateway</module>
         <module>platform/api</module>
+        <module>platform/profile</module>
+        <module>platform/catalog</module>
+        <module>platform/recommendations</module>
+        <module>platform/playback</module>
+        <module>platform/license</module>
         <module>platform/ratings-worker</module>
+        <module>control-plane/viewer-simulator</module>
     </modules>
 
     <properties>
