@@ -13,6 +13,7 @@
     <modules>
         <module>libs/test-support</module>
         <module>platform/license</module>
+        <module>platform/recommendations</module>
     </modules>
 
     <properties>
