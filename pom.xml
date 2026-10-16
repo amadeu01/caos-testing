@@ -15,6 +15,7 @@
         <module>platform/license</module>
         <module>platform/recommendations</module>
         <module>platform/profile</module>
+        <module>control-plane/viewer-simulator</module>
     </modules>
 
     <properties>
