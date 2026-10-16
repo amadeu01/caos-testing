@@ -15,6 +15,9 @@ public class Aggregator {
 
     static final int WINDOWS_KEPT = 600;
 
+    /** Batches arrive every 250 ms, one in flight at a time; a second is complete once this much time has passed after it ends. */
+    static final long SETTLE_MS = 1_000;
+
     private final LongSupplier clock;
     private final Window[] windows = new Window[WINDOWS_KEPT];
     private final Map<String, Long> lastSeen = new HashMap<>();
@@ -57,13 +60,17 @@ public class Aggregator {
         }
     }
 
+    static long lastSettledSecond(long nowMs) {
+        return (nowMs - SETTLE_MS) / 1000 - 1;
+    }
+
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
 
     public synchronized Snapshot latest() {
         long now = clock.getAsLong();
-        long second = now / 1000 - 1;
+        long second = lastSettledSecond(now);
         Window window = existing(second);
         List<DependencyView> dependencies = window == null ? List.of() : window.dependencyViews();
         TreeSet<String> names = new TreeSet<>(lastSeen.keySet());
@@ -84,7 +91,7 @@ public class Aggregator {
         if (!List.of("total", "control", "experiment").contains(group)) {
             throw new IllegalArgumentException("group must be total, control or experiment");
         }
-        long last = clock.getAsLong() / 1000 - 1;
+        long last = lastSettledSecond(clock.getAsLong());
         long first = Math.max(fromMs / 1000, last - WINDOWS_KEPT + 1);
         List<SpsPoint> series = new ArrayList<>();
         for (long second = first; second <= last; second++) {

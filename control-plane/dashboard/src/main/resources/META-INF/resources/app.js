@@ -93,6 +93,10 @@ function render(cy, snapshot) {
   if (snapshot.timestamp !== state.lastTimestamp) {
     state.lastTimestamp = snapshot.timestamp;
     pushSps(snapshot.sps.total);
+  } else {
+    state.spsHistory[state.spsHistory.length - 1] = snapshot.sps.total;
+    document.getElementById('sps-value').textContent = snapshot.sps.total;
+    drawSpsChart();
   }
   renderDrawer(cy);
 }

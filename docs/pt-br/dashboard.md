@@ -10,6 +10,8 @@ Abra `http://127.0.0.1:8080` depois de `scripts/platform-up.sh` (ou do **Platfor
 | Painel lateral | detalhes do que você clicou: saúde de um Service; taxa, erros, p50, p99 e resultados de uma Dependency |
 | Painel de Experiment | vazio por enquanto; os **Experiments** (experimentos) chegam na fatia 5 |
 
+A visão roda cerca de 2 s atrás do tempo real: ela mostra o último segundo assentado ([telemetria](telemetry.md)).
+
 `telemetry unavailable` também aparece quando o telemetry responde algo que não é JSON, e não apenas quando ele está inalcançável.
 
 ## Experimente

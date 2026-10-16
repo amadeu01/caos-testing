@@ -18,7 +18,7 @@ Quando o telemetry está lento ou fora do ar, os Services continuam atendendo. O
 
 ## O que uma janela contém
 
-`curl http://127.0.0.1:8082/windows/latest` mostra o último segundo completo:
+`curl http://127.0.0.1:8082/windows/latest` mostra o último segundo *assentado*, de cerca de 2 s atrás. O `telemetry` espera um segundo por lotes atrasados antes de considerar uma janela completa, então os números não piscam enquanto um segundo ainda está sendo preenchido:
 
 - **SPS**: Playback Starts (inícios de reprodução) naquele segundo.
 - **Por Dependency**: chamadas por segundo, percentual de erro, latência p50 e p99, contagem por resultado, saúde.

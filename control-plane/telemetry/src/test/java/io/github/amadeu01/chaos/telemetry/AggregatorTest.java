@@ -12,8 +12,8 @@ class AggregatorTest {
     private final AtomicLong now = new AtomicLong(1_000_500_000L);
     private final Aggregator aggregator = new Aggregator(now::get);
 
-    private long lastCompleteSecondMs() {
-        return (now.get() / 1000 - 1) * 1000;
+    private long settledSecondMs() {
+        return Aggregator.lastSettledSecond(now.get()) * 1000;
     }
 
     private static CallEvent call(long timestamp, String caller, String callee, String outcome, long latencyMs) {
@@ -21,8 +21,8 @@ class AggregatorTest {
     }
 
     @Test
-    void latestWindowSummarisesTheLastCompleteSecond() {
-        long t = lastCompleteSecondMs() + 100;
+    void latestWindowSummarisesTheLastSettledSecond() {
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch("api", 0, List.of(
                 call(t, "api", "profile", "OK", 10),
                 call(t, "api", "profile", "OK", 20),
@@ -30,7 +30,7 @@ class AggregatorTest {
 
         Snapshot snapshot = aggregator.latest();
 
-        assertThat(snapshot.timestamp()).isEqualTo(lastCompleteSecondMs());
+        assertThat(snapshot.timestamp()).isEqualTo(settledSecondMs());
         assertThat(snapshot.dependencies()).singleElement().satisfies(d -> {
             assertThat(d.caller()).isEqualTo("api");
             assertThat(d.callee()).isEqualTo("profile");
@@ -45,7 +45,7 @@ class AggregatorTest {
 
     @Test
     void batchWithoutServiceIsIgnoredAndDoesNotBreakTheLatestWindow() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch(null, 0, List.of(call(t, "ghost", "phantom", "OK", 1)), List.of()));
         aggregator.ingest(new EventBatch("  ", 0, List.of(call(t, "ghost", "phantom", "OK", 1)), List.of()));
         aggregator.ingest(new EventBatch("api", 0, List.of(call(t, "api", "profile", "OK", 1)), List.of()));
@@ -58,7 +58,7 @@ class AggregatorTest {
 
     @Test
     void invalidEventsAreSkippedAndValidOnesKept() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         java.util.ArrayList<CallEvent> calls = new java.util.ArrayList<>();
         calls.add(call(t, "api", null, "OK", 1));
         calls.add(call(t, "api", "profile", null, 1));
@@ -76,7 +76,7 @@ class AggregatorTest {
 
     @Test
     void countsPlaybackStartsPerGroup() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch("viewer-simulator", 0, List.of(), List.of(
                 new StartEvent(t, "none"), new StartEvent(t, "control"), new StartEvent(t, "experiment"),
                 new StartEvent(t, "experiment"))));
@@ -86,7 +86,7 @@ class AggregatorTest {
 
     @Test
     void eventsOlderThanTheRingAreIgnored() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch("api", 0, List.of(call(t, "api", "profile", "OK", 1)), List.of()));
         long sameSlotTenMinutesEarlier = t - Aggregator.WINDOWS_KEPT * 1000L;
         aggregator.ingest(new EventBatch("api", 0, List.of(call(sameSlotTenMinutesEarlier, "api", "profile", "OK", 1)), List.of()));
@@ -105,7 +105,7 @@ class AggregatorTest {
 
     @Test
     void servicesIncludeReportersCallersAndCallees() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch("catalog", 0, List.of(call(t, "catalog", "store", "OK", 1)), List.of()));
         aggregator.ingest(new EventBatch("license", 0, List.of(), List.of()));
 
@@ -124,12 +124,38 @@ class AggregatorTest {
 
     @Test
     void spsSeriesHasOnePointPerSecond() {
-        long t = lastCompleteSecondMs() + 100;
+        long t = settledSecondMs() + 100;
         aggregator.ingest(new EventBatch("viewer-simulator", 0, List.of(), List.of(new StartEvent(t, "none"))));
 
-        List<SpsPoint> series = aggregator.sps("total", lastCompleteSecondMs() - 2_000);
+        List<SpsPoint> series = aggregator.sps("total", settledSecondMs() - 2_000);
 
         assertThat(series).extracting(SpsPoint::sps).containsExactly(0, 0, 1);
-        assertThat(series).extracting(SpsPoint::timestamp).last().isEqualTo(lastCompleteSecondMs());
+        assertThat(series).extracting(SpsPoint::timestamp).last().isEqualTo(settledSecondMs());
+    }
+
+    @Test
+    void latestWaitsUntilASecondHasSettled() {
+        long stillFilling = (now.get() / 1000 - 1) * 1000 + 100;
+        long settled = settledSecondMs() + 100;
+        aggregator.ingest(new EventBatch("api", 0, List.of(
+                call(stillFilling, "api", "profile", "OK", 1),
+                call(settled, "api", "profile", "OK", 1)), List.of()));
+
+        assertThat(aggregator.latest().dependencies()).singleElement()
+                .extracting(DependencyView::callsPerSecond).isEqualTo(1);
+
+        now.addAndGet(1_000);
+
+        assertThat(aggregator.latest().dependencies()).singleElement()
+                .extracting(DependencyView::callsPerSecond).isEqualTo(1);
+        assertThat(aggregator.latest().timestamp()).isEqualTo(stillFilling / 1000 * 1000);
+    }
+
+    @Test
+    void spsSeriesEndsAtTheLastSettledSecond() {
+        List<SpsPoint> series = aggregator.sps("total", settledSecondMs() - 2_000);
+
+        assertThat(series).extracting(SpsPoint::timestamp)
+                .containsExactly(settledSecondMs() - 2_000, settledSecondMs() - 1_000, settledSecondMs());
     }
 }

@@ -25,7 +25,7 @@ class TelemetryResourceTest {
 
     @Test
     void recentStartsShowUpInTheSpsSeries() {
-        long recent = System.currentTimeMillis() - 1_000;
+        long recent = System.currentTimeMillis() - 2_500;
         long from = recent - 5_000;
         given().contentType(ContentType.JSON)
                 .body(WIRE_FORMAT.replace("\"timestamp\":1000", "\"timestamp\":" + recent))

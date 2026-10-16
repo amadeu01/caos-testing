@@ -18,7 +18,7 @@ When telemetry is slow or down, Services keep serving. The buffer drops events a
 
 ## What a window contains
 
-`curl http://127.0.0.1:8082/windows/latest` shows the last complete second:
+`curl http://127.0.0.1:8082/windows/latest` shows the last *settled* second, about 2 s ago. `telemetry` waits a second for late batches before it calls a window complete, so the numbers never flicker while a second is still filling:
 
 - **SPS**: Playback Starts in that second.
 - **Per Dependency**: calls per second, error percentage, p50 and p99 latency, count per outcome, health.

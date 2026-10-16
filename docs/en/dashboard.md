@@ -10,6 +10,8 @@ Open `http://127.0.0.1:8080` after `scripts/platform-up.sh` (or IntelliJ's **Pla
 | Right drawer | details of what you clicked: health of a Service; rate, errors, p50, p99 and outcomes of a Dependency |
 | Experiment panel | empty for now; Experiments arrive in slice 5 |
 
+The view runs about 2 s behind real time: it shows the last settled second ([telemetry](telemetry.md)).
+
 `telemetry unavailable` also appears when telemetry answers with something that is not JSON, not only when it is unreachable.
 
 ## Try it
