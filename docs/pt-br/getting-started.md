@@ -7,7 +7,7 @@
 3. Abra a pasta do repositório no IntelliJ. Ele importa o projeto Maven sozinho.
 4. Defina o SDK do projeto como JDK 25 (*File > Project Structure > SDK*; use *Download JDK* se não tiver um).
 
-Na linha de comando, aponte `JAVA_HOME` para um JDK 25. O build para com uma mensagem clara em qualquer JDK mais antigo.
+No IntelliJ, a configuração **Platform up** compila com o SDK do projeto. Os scripts de linha de comando precisam de `JAVA_HOME` apontando para um JDK 25. O build para com uma mensagem clara em qualquer JDK mais antigo.
 
 ## 2. Compilar e testar
 
@@ -48,7 +48,7 @@ curl -X PUT 'http://127.0.0.1:8090/viewers-per-second?value=20'
 Outras coisas para experimentar:
 
 - `curl 'http://127.0.0.1:8000/home?viewerId=v-1'` mostra o conteúdo da página inicial de um Viewer.
-- `http://127.0.0.1:9325` é a interface web do ElasticMQ, onde você acompanha a fila `ratings`.
+- `http://127.0.0.1:9325` é a interface web do ElasticMQ, onde você acompanha a fila `ratings`. Ela fica quase vazia; se crescer, o ratings-worker não está dando conta.
 
 ## 5. Parar
 

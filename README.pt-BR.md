@@ -22,7 +22,7 @@ docker compose logs -f viewer-simulator   # acompanhe o SPS
 scripts/platform-down.sh                  # para tudo
 ```
 
-No IntelliJ, use as configurações de execução **Platform up**, **SPS log** e **Platform down**.
+No IntelliJ, use as configurações de execução **Platform up**, **SPS log** e **Platform down**. A **Platform up** compila com o SDK do projeto; os scripts de linha de comando precisam de `JAVA_HOME` apontando para o JDK 25.
 
 ## Saiba mais
 

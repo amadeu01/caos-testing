@@ -32,6 +32,8 @@ Uma **Dependency** (dependência) é uma chamada de um Service para outro.
 | api → recommendations | Non-critical | poderia mostrar títulos populares |
 | api → playback, playback → license | Critical | nenhum Playback Start |
 | api → queue | Non-critical | a avaliação pode ser descartada |
+| ratings-worker → queue | Assíncrona, fora da jornada do Viewer | as avaliações esperam na fila |
+| ratings-worker → store | Assíncrona, fora da jornada do Viewer | as avaliações esperam na fila |
 
 O "poderia" é proposital: nesta fatia nenhuma Dependency tem **Fallback** (resposta degradada) ainda, então toda falha se espalha. As próximas fatias adicionam **Resilience Policies** (políticas de resiliência) que você liga e desliga.
 
@@ -41,7 +43,7 @@ Os Services usam o AWS SDK v2 de verdade, apontado para emuladores locais: Dynam
 
 ## Threads, de propósito
 
-Cada Service da plataforma atende requisições em um pool pequeno e limitado de 16 threads. É proposital: assim uma Dependency lenta esgota visivelmente um Service no Ato 4. Veja o [ADR 0002](../adr/0002-fixed-platform-thread-pools.md).
+Cada Service da plataforma atende requisições em um pool pequeno e limitado de 16 threads. É proposital: assim uma Dependency lenta esgota visivelmente um Service no **Act** 4 (ato: um passo roteirizado da aula). Veja o [ADR 0002](../adr/0002-fixed-platform-thread-pools.md) (em inglês).
 
 ## Organização do repositório
 

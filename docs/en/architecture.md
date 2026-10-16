@@ -20,6 +20,8 @@ viewer-simulator ─▶ edge-gateway ─▶ api ─┬─▶ profile
 
 ## Dependencies
 
+A **Dependency** is a call from one Service to another.
+
 | Dependency | Kind | What its loss means |
 |---|---|---|
 | edge-gateway → api | Critical | no Viewer gets in |
@@ -30,6 +32,8 @@ viewer-simulator ─▶ edge-gateway ─▶ api ─┬─▶ profile
 | api → recommendations | Non-critical | could show popular titles |
 | api → playback, playback → license | Critical | no Playback Start |
 | api → queue | Non-critical | the rating can be dropped |
+| ratings-worker → queue | Asynchronous, off the Viewer journey | ratings wait in the queue |
+| ratings-worker → store | Asynchronous, off the Viewer journey | ratings wait in the queue |
 
 "Could" is deliberate: in this slice no Dependency has a Fallback yet, so every failure spreads. Later slices add Resilience Policies and let you switch them on and off.
 
@@ -39,7 +43,7 @@ Services use the real AWS SDK v2, pointed at local emulators: DynamoDB Local for
 
 ## Threads, on purpose
 
-Every platform Service handles requests on a small, bounded pool of 16 worker threads. That is deliberate: it lets a slow Dependency visibly exhaust a Service in Act 4. See [ADR 0002](../adr/0002-fixed-platform-thread-pools.md).
+Every platform Service handles requests on a small, bounded pool of 16 worker threads. That is deliberate: it lets a slow Dependency visibly exhaust a Service in Act 4 (an Act is a scripted lecture step). See [ADR 0002](../adr/0002-fixed-platform-thread-pools.md).
 
 ## Repository layout
 
