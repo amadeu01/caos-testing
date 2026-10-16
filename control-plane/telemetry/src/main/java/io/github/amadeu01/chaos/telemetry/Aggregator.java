@@ -1,0 +1,108 @@
+package io.github.amadeu01.chaos.telemetry;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.function.LongSupplier;
+
+/** Ring of one-second windows (10 minutes) plus when each Service last reported. In memory only. */
+@ApplicationScoped
+public class Aggregator {
+
+    static final int WINDOWS_KEPT = 600;
+
+    private final LongSupplier clock;
+    private final Window[] windows = new Window[WINDOWS_KEPT];
+    private final Map<String, Long> lastSeen = new HashMap<>();
+
+    public Aggregator() {
+        this(System::currentTimeMillis);
+    }
+
+    Aggregator(LongSupplier clock) {
+        this.clock = clock;
+    }
+
+    public synchronized void ingest(EventBatch batch) {
+        long now = clock.getAsLong();
+        lastSeen.put(batch.service(), now);
+        if (batch.calls() != null) {
+            for (CallEvent call : batch.calls()) {
+                Window window = windowFor(call.timestamp(), now);
+                if (window != null) {
+                    window.recordCall(call);
+                }
+            }
+        }
+        if (batch.starts() != null) {
+            for (StartEvent start : batch.starts()) {
+                Window window = windowFor(start.timestamp(), now);
+                if (window != null) {
+                    window.recordStart(start.group());
+                }
+            }
+        }
+    }
+
+    public synchronized Snapshot latest() {
+        long now = clock.getAsLong();
+        long second = now / 1000 - 1;
+        Window window = existing(second);
+        List<DependencyView> dependencies = window == null ? List.of() : window.dependencyViews();
+        TreeSet<String> names = new TreeSet<>(lastSeen.keySet());
+        dependencies.forEach(d -> {
+            names.add(d.caller());
+            names.add(d.callee());
+        });
+        List<ServiceHealth> services = new ArrayList<>();
+        for (String name : names) {
+            List<DependencyView> incoming = dependencies.stream().filter(d -> d.callee().equals(name)).toList();
+            services.add(new ServiceHealth(name, HealthRule.forService(incoming, lastSeen.get(name), now)));
+        }
+        return new Snapshot(second * 1000, window == null ? new Sps(0, 0, 0) : window.sps(), dependencies, services);
+    }
+
+    /** @param group total, control or experiment */
+    public synchronized List<SpsPoint> sps(String group, long fromMs) {
+        if (!List.of("total", "control", "experiment").contains(group)) {
+            throw new IllegalArgumentException("group must be total, control or experiment");
+        }
+        long last = clock.getAsLong() / 1000 - 1;
+        long first = Math.max(fromMs / 1000, last - WINDOWS_KEPT + 1);
+        List<SpsPoint> series = new ArrayList<>();
+        for (long second = first; second <= last; second++) {
+            Window window = existing(second);
+            Sps sps = window == null ? new Sps(0, 0, 0) : window.sps();
+            int value = switch (group) {
+                case "control" -> sps.control();
+                case "experiment" -> sps.experiment();
+                default -> sps.total();
+            };
+            series.add(new SpsPoint(second * 1000, value));
+        }
+        return series;
+    }
+
+    /** The window for an event's second, or null when the event is outside the ring or in the future. */
+    private Window windowFor(long timestampMs, long nowMs) {
+        long second = timestampMs / 1000;
+        long current = nowMs / 1000;
+        if (second > current || second <= current - WINDOWS_KEPT) {
+            return null;
+        }
+        int slot = (int) (second % WINDOWS_KEPT);
+        if (windows[slot] == null || windows[slot].second != second) {
+            windows[slot] = new Window(second);
+        }
+        return windows[slot];
+    }
+
+    private Window existing(long second) {
+        Window window = windows[(int) (second % WINDOWS_KEPT)];
+        return window != null && window.second == second ? window : null;
+    }
+}

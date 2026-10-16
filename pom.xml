@@ -22,6 +22,7 @@
         <module>platform/ratings-worker</module>
         <module>control-plane/viewer-simulator</module>
         <module>control-plane/dashboard</module>
+        <module>control-plane/telemetry</module>
     </modules>
 
     <properties>
