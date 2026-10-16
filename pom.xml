@@ -12,6 +12,7 @@
 
     <modules>
         <module>libs/test-support</module>
+        <module>platform/license</module>
     </modules>
 
     <properties>
