@@ -37,6 +37,7 @@ High Volume, Distributed System" (2012).
 | `:white_check_mark:` | Add or update tests |
 | `:boom:` | Introduce a deliberate failure for teaching (a naive path that cascades) |
 | `:shield:` | Add or tune a Resilience Policy (timeout, retry, breaker, bulkhead, Fallback) |
+| `:loud_sound:` | Add or improve logs |
 | `:chart_with_upwards_trend:` | Telemetry and dashboard metrics |
 | `:lipstick:` | Dashboard look and feel |
 | `:whale:` | Docker and Compose |

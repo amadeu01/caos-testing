@@ -11,12 +11,15 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /** The front door, like Netflix's Zuul: every Viewer request enters the platform here. */
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 public class EdgeResource {
+
+    private static final Logger LOG = Logger.getLogger(EdgeResource.class);
 
     @Inject
     @RestClient
@@ -44,6 +47,7 @@ public class EdgeResource {
 
     @ServerExceptionMapper
     public Response apiUnreachable(ProcessingException e) {
+        LOG.warnf("api unreachable: %s", e.getMessage());
         return Response.status(Response.Status.BAD_GATEWAY)
                 .entity("{\"error\":\"api unreachable\"}")
                 .type(MediaType.APPLICATION_JSON)
