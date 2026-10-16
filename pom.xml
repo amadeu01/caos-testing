@@ -11,6 +11,7 @@
     <name>Chaos Engineering Lecture Demo</name>
 
     <modules>
+        <module>libs/test-support</module>
     </modules>
 
     <properties>
