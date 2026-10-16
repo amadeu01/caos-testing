@@ -21,9 +21,14 @@ public class ViewerRateResource {
     }
 
     @PUT
-    public void set(@QueryParam("value") int value) {
+    public void set(@QueryParam("value") String value) {
+        if (value == null) {
+            throw new BadRequestException("Query parameter 'value' is required");
+        }
         try {
-            simulator.setViewersPerSecond(value);
+            simulator.setViewersPerSecond(Integer.parseInt(value.trim()));
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Query parameter 'value' must be an integer");
         } catch (IllegalArgumentException e) {
             throw new BadRequestException(e.getMessage());
         }

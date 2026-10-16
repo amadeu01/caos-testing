@@ -26,4 +26,10 @@ class ViewerRateResourceTest {
         given().when().put("/viewers-per-second?value=-1").then().statusCode(400);
         given().when().put("/viewers-per-second?value=501").then().statusCode(400);
     }
+
+    @Test
+    void rejectsMissingOrNonNumericValue() {
+        given().when().put("/viewers-per-second").then().statusCode(400);
+        given().when().put("/viewers-per-second?value=abc").then().statusCode(400);
+    }
 }
