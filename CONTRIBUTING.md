@@ -52,3 +52,7 @@ Full list: <https://gitmoji.dev>.
 ## Architecture decisions
 
 A decision that is hard to reverse, surprising without context, and the result of a real trade-off gets an ADR in [`docs/adr/`](docs/adr/), numbered in sequence. A change that contradicts an ADR either follows it or replaces it with a new ADR in the same commit.
+
+## Documentation in two languages
+
+Human documentation exists in English (`README.md`, `docs/en/`) and Brazilian Portuguese (`README.pt-BR.md`, `docs/pt-br/`), with the same pages in both. A change to one language updates the other in the same commit. Domain terms from `CONTEXT.md` stay in English in both; Portuguese text puts the term in bold with a gloss on first use, for example "**Blast Radius** (raio de impacto)".
