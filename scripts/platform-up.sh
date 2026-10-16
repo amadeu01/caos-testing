@@ -9,8 +9,8 @@ if [[ "${1:-}" != "--no-build" ]]; then
 fi
 docker compose up -d --build
 
-echo "Waiting for edge-gateway and viewer-simulator..."
-for url in http://127.0.0.1:8000/q/health/ready http://127.0.0.1:8090/q/health/ready; do
+echo "Waiting for edge-gateway, viewer-simulator, telemetry and dashboard..."
+for url in http://127.0.0.1:8000/q/health/ready http://127.0.0.1:8090/q/health/ready http://127.0.0.1:8082/q/health/ready http://127.0.0.1:8080/q/health/ready; do
   for _ in $(seq 1 120); do
     curl -fs "$url" >/dev/null 2>&1 && break
     sleep 1
@@ -22,4 +22,4 @@ for url in http://127.0.0.1:8000/q/health/ready http://127.0.0.1:8090/q/health/r
   fi
 done
 
-echo "Platform is up. Watch SPS with: docker compose logs -f viewer-simulator"
+echo "Platform is up. Open the dashboard: http://127.0.0.1:8080"

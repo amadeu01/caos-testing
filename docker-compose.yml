@@ -104,3 +104,18 @@ services:
       - "127.0.0.1:8090:8080"
     depends_on:
       edge-gateway: { condition: service_healthy }
+
+  telemetry:
+    <<: *quarkus
+    build: { context: ./control-plane/telemetry, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    ports:
+      - "127.0.0.1:8082:8080"
+
+  dashboard:
+    <<: *quarkus
+    build: { context: ./control-plane/dashboard, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
+    ports:
+      - "127.0.0.1:8080:8080"   # open http://127.0.0.1:8080
+    depends_on:
+      telemetry: { condition: service_healthy }
+      viewer-simulator: { condition: service_started }
