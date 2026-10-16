@@ -19,6 +19,7 @@
         <module>control-plane/viewer-simulator</module>
         <module>platform/playback</module>
         <module>platform/edge-gateway</module>
+        <module>platform/api</module>
     </modules>
 
     <properties>
