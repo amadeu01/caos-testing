@@ -1,5 +1,6 @@
 package io.github.amadeu01.chaos.api;
 
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.POST;
@@ -14,6 +15,9 @@ public class PlayResource {
     @RestClient
     PlaybackClient playback;
 
+    @Inject
+    DependencyCalls calls;
+
     @POST
     public Playback play(PlayRequest request) {
         if (request == null) {
@@ -21,6 +25,6 @@ public class PlayResource {
         }
         Requests.requireNonBlank(request.viewerId(), "viewerId");
         Requests.requireNonBlank(request.titleId(), "titleId");
-        return playback.start(request);
+        return calls.call("playback", () -> playback.start(request));
     }
 }

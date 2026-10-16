@@ -2,6 +2,7 @@ package io.github.amadeu01.chaos.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -13,6 +14,9 @@ public class RatingPublisher {
 
     @Inject
     SqsClient sqs;
+
+    @Inject
+    DependencyCalls calls;
 
     @Inject
     ObjectMapper mapper;
@@ -29,7 +33,7 @@ public class RatingPublisher {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Ratings must always serialise", e);
         }
-        sqs.sendMessage(request -> request.queueUrl(queueUrl()).messageBody(body));
+        calls.run("queue", () -> sqs.sendMessage(request -> request.queueUrl(queueUrl()).messageBody(body)));
     }
 
     private String queueUrl() {

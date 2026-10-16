@@ -14,16 +14,21 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static org.awaitility.Awaitility.await;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -35,7 +40,7 @@ import static org.hamcrest.Matchers.hasSize;
 @WithTestResource(ElasticMqResource.class)
 @WithTestResource(value = WireMockResource.class, initArgs = @ResourceArg(name = WireMockResource.URL_PROPERTIES,
         value = "quarkus.rest-client.profile.url,quarkus.rest-client.catalog.url,"
-                + "quarkus.rest-client.recommendations.url,quarkus.rest-client.playback.url"))
+                + "quarkus.rest-client.recommendations.url,quarkus.rest-client.playback.url,telemetry.url"))
 class ApiResourceTest {
 
     @InjectWireMock
@@ -69,7 +74,7 @@ class ApiResourceTest {
     void homeWithoutViewerIsBadRequestAndCallsNothing() {
         given().queryParam("viewerId", " ").when().get("/home").then().statusCode(400);
         given().when().get("/home").then().statusCode(400);
-        wireMock.verify(0, anyRequestedFor(anyUrl()));
+        wireMock.verify(0, anyRequestedFor(urlPathMatching("/(profiles|titles|recommendations|playbacks).*")));
     }
 
     /** Naive baseline for Act 2: without a Fallback, a Non-critical Dependency breaks the whole home page. */
@@ -111,6 +116,27 @@ class ApiResourceTest {
                 .when().post("/ratings").then().statusCode(400);
         given().contentType(ContentType.JSON).body("{\"viewerId\":\"v-1\",\"titleId\":\"t03\",\"stars\":0}")
                 .when().post("/ratings").then().statusCode(400);
+    }
+
+    @Test
+    void reportsEachDependencyCallToTelemetry() {
+        wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+
+        given().when().get("/home?viewerId=v-1").then().statusCode(200);
+
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'recommendations' && @.outcome == 'OK')]"))));
+    }
+
+    @Test
+    void reportsAFailedDependencyAsAnError() {
+        wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+        wireMock.stubFor(get("/recommendations/v-1").willReturn(aResponse().withStatus(503)));
+
+        given().when().get("/home?viewerId=v-1");
+
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
+                .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'recommendations' && @.outcome == 'ERROR')]"))));
     }
 
     private static String titlesJson(int count) {

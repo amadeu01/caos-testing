@@ -1,5 +1,6 @@
 package io.github.amadeu01.chaos.api;
 
+import io.github.amadeu01.chaos.libtelemetry.DependencyCalls;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -26,12 +27,15 @@ public class HomeResource {
     @RestClient
     RecommendationsClient recommendations;
 
+    @Inject
+    DependencyCalls calls;
+
     @GET
     public Home home(@QueryParam("viewerId") String viewerId) {
         Requests.requireNonBlank(viewerId, "viewerId");
-        Profile profile = profiles.get(viewerId);
-        List<Title> titles = catalog.all().stream().limit(TITLES_ON_HOME).toList();
-        List<String> recommended = recommendations.get(viewerId).titleIds();
+        Profile profile = calls.call("profile", () -> profiles.get(viewerId));
+        List<Title> titles = calls.call("catalog", () -> catalog.all()).stream().limit(TITLES_ON_HOME).toList();
+        List<String> recommended = calls.call("recommendations", () -> recommendations.get(viewerId)).titleIds();
         return new Home(profile, titles, recommended);
     }
 }
