@@ -14,6 +14,7 @@
         <module>libs/test-support</module>
         <module>platform/license</module>
         <module>platform/recommendations</module>
+        <module>platform/profile</module>
     </modules>
 
     <properties>
