@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chaos Lecture Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/cytoscape.min.js"></script>
+</head>
+<body>
+  <header class="top-bar">
+    <h1>Chaos Lecture Demo</h1>
+    <label class="rate">Viewers/s
+      <input id="rate" type="range" min="0" max="200" step="10" value="50">
+      <output id="rate-value">50</output>
+    </label>
+    <span id="connection" class="connection">connecting…</span>
+  </header>
+
+  <section class="sps-strip" aria-label="Steady State">
+    <div class="sps-now"><span class="label">SPS</span><span id="sps-value">–</span></div>
+    <canvas id="sps-chart" aria-label="SPS over the last 60 seconds"></canvas>
+  </section>
+
+  <main class="main">
+    <div id="topology" class="topology" aria-label="Platform topology"></div>
+    <aside id="drawer" class="drawer"><p class="hint">Click a Service or a Dependency.</p></aside>
+  </main>
+
+  <footer class="experiment-panel">
+    <span class="label">Experiment</span>
+    <span id="experiment">No Experiment running.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

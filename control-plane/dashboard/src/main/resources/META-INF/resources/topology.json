@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    { "id": "viewer-simulator", "label": "viewers", "kind": "control", "x": 0, "y": 280 },
+    { "id": "edge-gateway", "label": "edge-gateway", "kind": "service", "x": 170, "y": 280 },
+    { "id": "api", "label": "api", "kind": "service", "x": 360, "y": 280 },
+    { "id": "profile", "label": "profile", "kind": "service", "x": 580, "y": 40 },
+    { "id": "catalog", "label": "catalog", "kind": "service", "x": 580, "y": 160 },
+    { "id": "recommendations", "label": "recommendations", "kind": "service", "x": 580, "y": 280 },
+    { "id": "playback", "label": "playback", "kind": "service", "x": 580, "y": 400 },
+    { "id": "queue", "label": "queue (SQS)", "kind": "emulator", "x": 580, "y": 520 },
+    { "id": "cache", "label": "cache (Redis)", "kind": "emulator", "x": 800, "y": 110 },
+    { "id": "store", "label": "store (DynamoDB)", "kind": "emulator", "x": 1000, "y": 300 },
+    { "id": "license", "label": "license", "kind": "service", "x": 800, "y": 400 },
+    { "id": "ratings-worker", "label": "ratings-worker", "kind": "service", "x": 800, "y": 520 }
+  ],
+  "edges": [
+    { "source": "viewer-simulator", "target": "edge-gateway", "kind": "critical" },
+    { "source": "edge-gateway", "target": "api", "kind": "critical" },
+    { "source": "api", "target": "profile", "kind": "non-critical" },
+    { "source": "api", "target": "catalog", "kind": "critical" },
+    { "source": "catalog", "target": "cache", "kind": "non-critical" },
+    { "source": "catalog", "target": "store", "kind": "critical" },
+    { "source": "api", "target": "recommendations", "kind": "non-critical" },
+    { "source": "api", "target": "playback", "kind": "critical" },
+    { "source": "playback", "target": "license", "kind": "critical" },
+    { "source": "api", "target": "queue", "kind": "non-critical" },
+    { "source": "ratings-worker", "target": "queue", "kind": "async" },
+    { "source": "ratings-worker", "target": "store", "kind": "async" }
+  ]
+}
