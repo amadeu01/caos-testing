@@ -17,7 +17,7 @@ A visão roda cerca de 2 s atrás do tempo real: ela mostra o último segundo as
 ## Experimente
 
 1. Veja o SPS se estabilizar perto de 50.
-2. `docker compose stop recommendations`. Em segundos o recommendations fica vermelho, depois o api e o edge-gateway, e o SPS cai para 0: uma **Non-critical Dependency** (dependência não crítica) derrubou a plataforma inteira. Esse é o **Act** 2 (ato 2), a **Cascading Failure** (falha em cascata).
-3. `docker compose start recommendations` e veja o Steady State voltar.
+2. `docker compose stop recommendations`. O recommendations para de responder e nenhuma Dependency tem timeout ainda, então as chamadas do api esperam. As 16 threads de requisição do api se enchem, o api começa a rejeitar requisições, as chamadas do edge-gateway ao api falham e o SPS cai para 0. O recommendations fica vermelho quando o heartbeat dele para (3 s). Uma **Non-critical Dependency** (dependência não crítica) derrubou a plataforma inteira: esse é o **Act** 2 (ato 2), a **Cascading Failure** (falha em cascata).
+3. `docker compose start recommendations`. O Steady State volta quando as chamadas presas tiverem falhado.
 
 Fora o controle de Viewers/s, o dashboard só mostra; as **Faults** (falhas) e os controles de **Resilience Policy** chegam nas próximas fatias.

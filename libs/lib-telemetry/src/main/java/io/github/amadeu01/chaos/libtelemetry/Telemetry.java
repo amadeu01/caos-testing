@@ -1,19 +1,32 @@
 package io.github.amadeu01.chaos.libtelemetry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.scheduler.Scheduled;
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-/** This Service's connection to telemetry: buffers events and flushes them every 250 ms. */
+/**
+ * This Service's connection to telemetry: buffers events and flushes them every 250 ms from its own thread.
+ * Not from the request pool: when every request thread is stuck on a hung Dependency, the Service must still be
+ * able to say so (ADR 0002, ADR 0005).
+ */
 @ApplicationScoped
 public class Telemetry implements CallRecorder {
+
+    private static final Logger LOG = Logger.getLogger(Telemetry.class.getName());
 
     static final int BUFFER_CAPACITY = 10_000;
     static final Duration SEND_TIMEOUT = Duration.ofSeconds(1);
@@ -32,6 +45,7 @@ public class Telemetry implements CallRecorder {
 
     private TelemetryBuffer buffer;
     private BatchSender sender;
+    private ScheduledExecutorService flusher;
 
     @PostConstruct
     void init() {
@@ -55,8 +69,30 @@ public class Telemetry implements CallRecorder {
         buffer.recordStart();
     }
 
-    /** Sends buffered events now; the scheduler calls it every 250 ms, tests without a scheduler call it directly. */
-    @Scheduled(every = "0.25s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void start(@Observes StartupEvent event) {
+        if (!enabled) {
+            return;
+        }
+        flusher = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().name("telemetry-flush").daemon().factory());
+        flusher.scheduleWithFixedDelay(this::flushSafely, 0, 250, TimeUnit.MILLISECONDS);
+    }
+
+    void stop(@Observes ShutdownEvent event) {
+        if (flusher != null) {
+            flusher.shutdownNow();
+        }
+    }
+
+    /** An uncaught exception would cancel the scheduled task and silence this Service for good. */
+    private void flushSafely() {
+        try {
+            flush();
+        } catch (RuntimeException e) {
+            LOG.log(Level.FINE, "telemetry flush failed", e);
+        }
+    }
+
+    /** Sends buffered events now; the flush thread calls it every 250 ms, tests call it directly. */
     public void flush() {
         if (enabled) {
             buffer.flushTo(sender);

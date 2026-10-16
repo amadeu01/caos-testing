@@ -6,6 +6,7 @@ import io.github.amadeu01.chaos.testsupport.InjectWireMock;
 import io.github.amadeu01.chaos.testsupport.WireMockResource;
 import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
@@ -14,8 +15,14 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -48,6 +55,9 @@ class ApiResourceTest {
 
     @Inject
     SqsClient sqs;
+
+    @TestHTTPResource
+    URL baseUrl;
 
     @BeforeEach
     void stubHealthyDependencies() {
@@ -137,6 +147,32 @@ class ApiResourceTest {
 
         await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> wireMock.verify(postRequestedFor(urlEqualTo("/events"))
                 .withRequestBody(matchingJsonPath("$.calls[?(@.callee == 'recommendations' && @.outcome == 'ERROR')]"))));
+    }
+
+    /**
+     * ADR 0002: api has 16 request threads. When recommendations hangs they all fill, and telemetry must still
+     * hear from api, so the flush runs on its own thread instead of on the request pool.
+     */
+    @Test
+    void heartbeatsWhileEveryWorkerIsBusy() throws Exception {
+        wireMock.stubFor(get("/recommendations/v-1").willReturn(okJson("{\"viewerId\":\"v-1\",\"titleIds\":[]}")
+                .withFixedDelay(5000)));
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest home = HttpRequest.newBuilder(URI.create(baseUrl + "/home?viewerId=v-1")).build();
+        List<CompletableFuture<HttpResponse<String>>> hung = IntStream.range(0, 60)
+                .mapToObj(n -> client.sendAsync(home, HttpResponse.BodyHandlers.ofString())).toList();
+        try {
+            Thread.sleep(500);
+            wireMock.resetRequests();
+            wireMock.stubFor(post("/events").willReturn(aResponse().withStatus(202)));
+
+            await().atMost(Duration.ofMillis(1500)).untilAsserted(() ->
+                    wireMock.verify(postRequestedFor(urlEqualTo("/events"))));
+            assertThat(hung).anyMatch(future -> !future.isDone());
+        } finally {
+            wireMock.stubFor(get("/recommendations/v-1").willReturn(okJson("{\"viewerId\":\"v-1\",\"titleIds\":[]}")));
+            CompletableFuture.allOf(hung.toArray(CompletableFuture[]::new)).get(30, java.util.concurrent.TimeUnit.SECONDS);
+        }
     }
 
     private static String titlesJson(int count) {

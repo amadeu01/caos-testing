@@ -14,7 +14,7 @@ Chaos engineering starts with measuring Steady State. Every number on the dashbo
 
 ## Observability is never a Critical Dependency
 
-When telemetry is slow or down, Services keep serving. The buffer drops events and counts them; a request never waits for telemetry. Each Service sends at most one batch at a time: while one is in flight, the next flush waits and events stay in the bounded buffer. On the receiving side, `telemetry` ignores batches without a service name and skips incomplete events instead of failing. Try it: `docker compose stop telemetry` and watch `docker compose logs -f viewer-simulator` keep printing SPS.
+When telemetry is slow or down, Services keep serving. The buffer drops events and counts them; a request never waits for telemetry. Each Service sends from its own thread, not from its 16 request threads, so a Service whose threads are all stuck can still tell you so. Each Service sends at most one batch at a time: while one is in flight, the next flush waits and events stay in the bounded buffer. On the receiving side, `telemetry` ignores batches without a service name and skips incomplete events instead of failing. Try it: `docker compose stop telemetry` and watch `docker compose logs -f viewer-simulator` keep printing SPS.
 
 ## What a window contains
 

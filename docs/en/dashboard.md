@@ -17,7 +17,7 @@ The view runs about 2 s behind real time: it shows the last settled second ([tel
 ## Try it
 
 1. Watch SPS settle around 50.
-2. `docker compose stop recommendations`. Within seconds recommendations turns red, then api and edge-gateway, and SPS falls to 0: a Non-critical Dependency took the whole platform down. That is Act 2, the Cascading Failure.
-3. `docker compose start recommendations` and watch Steady State return.
+2. `docker compose stop recommendations`. recommendations stops answering, and no Dependency has a timeout yet, so api's calls to it wait. All 16 api request threads fill, api starts rejecting requests, edge-gateway's calls to api fail and SPS falls to 0. recommendations turns red when its heartbeat stops (3 s). A Non-critical Dependency took the whole platform down: that is Act 2, the Cascading Failure.
+3. `docker compose start recommendations`. Steady State returns once the stuck calls have failed.
 
 Apart from the Viewers/s slider, the dashboard only reads; Faults and Resilience Policy switches arrive in the next slices.

@@ -14,7 +14,7 @@ Engenharia do caos começa medindo o **Steady State** (estado estável). Todo n�
 
 ## Observabilidade nunca é uma Critical Dependency
 
-Quando o telemetry está lento ou fora do ar, os Services continuam atendendo. O buffer descarta eventos e conta quantos descartou; nenhuma requisição espera pelo telemetry. Cada Service envia no máximo um lote por vez: enquanto um está em andamento, o próximo envio espera e os eventos ficam no buffer limitado. Do lado que recebe, o `telemetry` ignora lotes sem nome de Service e pula eventos incompletos em vez de falhar. Experimente: `docker compose stop telemetry` e veja `docker compose logs -f viewer-simulator` continuar mostrando o SPS.
+Quando o telemetry está lento ou fora do ar, os Services continuam atendendo. O buffer descarta eventos e conta quantos descartou; nenhuma requisição espera pelo telemetry. Cada Service envia a partir de uma thread própria, não das suas 16 threads de requisição, então um Service com todas as threads presas ainda consegue avisar. Cada Service envia no máximo um lote por vez: enquanto um está em andamento, o próximo envio espera e os eventos ficam no buffer limitado. Do lado que recebe, o `telemetry` ignora lotes sem nome de Service e pula eventos incompletos em vez de falhar. Experimente: `docker compose stop telemetry` e veja `docker compose logs -f viewer-simulator` continuar mostrando o SPS.
 
 ## O que uma janela contém
 

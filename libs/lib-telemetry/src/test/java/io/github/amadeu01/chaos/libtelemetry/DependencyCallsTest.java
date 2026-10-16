@@ -61,4 +61,18 @@ class DependencyCallsTest {
 
         assertThat(recorded).singleElement().extracting(Recorded::outcome).isEqualTo(Outcome.OK);
     }
+
+    @Test
+    void aFailingRecorderNeverFailsTheCall() {
+        DependencyCalls broken = new DependencyCalls((callee, outcome, latencyMs) -> {
+            throw new IllegalStateException("recorder is broken");
+        });
+
+        assertThat(broken.call("profile", () -> "Viewer v-1")).isEqualTo("Viewer v-1");
+        assertThat(broken.callHttp("api", () -> Response.ok().build()).getStatus()).isEqualTo(200);
+        IllegalArgumentException failure = new IllegalArgumentException("the call's own failure");
+        assertThatThrownBy(() -> broken.call("profile", () -> {
+            throw failure;
+        })).isSameAs(failure);
+    }
 }

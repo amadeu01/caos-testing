@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -21,15 +22,7 @@ public class DependencyCalls {
     }
 
     public <T> T call(String callee, Supplier<T> call) {
-        long start = System.nanoTime();
-        try {
-            T result = call.get();
-            recorder.recordCall(callee, Outcome.OK, elapsedMs(start));
-            return result;
-        } catch (RuntimeException e) {
-            recorder.recordCall(callee, Outcome.ERROR, elapsedMs(start));
-            throw e;
-        }
+        return measured(callee, call, result -> Outcome.OK);
     }
 
     public void run(String callee, Runnable call) {
@@ -41,14 +34,31 @@ public class DependencyCalls {
 
     /** For callers that receive raw HTTP responses (edge-gateway): a 5xx is the callee's failure, a 4xx is not. */
     public Response callHttp(String callee, Supplier<Response> call) {
+        return measured(callee, call, response -> response.getStatus() >= 500 ? Outcome.ERROR : Outcome.OK);
+    }
+
+    /**
+     * The single code path every Dependency call takes, so slice 4 wraps it once. The outcome is picked inside
+     * the try and recorded in {@code finally}: whatever the call does, it is recorded, and a failing recorder
+     * can never fail the call.
+     */
+    private <T> T measured(String callee, Supplier<T> call, Function<T, Outcome> classify) {
         long start = System.nanoTime();
+        Outcome outcome = Outcome.ERROR;
         try {
-            Response response = call.get();
-            recorder.recordCall(callee, response.getStatus() >= 500 ? Outcome.ERROR : Outcome.OK, elapsedMs(start));
-            return response;
-        } catch (RuntimeException e) {
-            recorder.recordCall(callee, Outcome.ERROR, elapsedMs(start));
-            throw e;
+            T result = call.get();
+            outcome = classify.apply(result);
+            return result;
+        } finally {
+            safeRecord(callee, outcome, elapsedMs(start));
+        }
+    }
+
+    private void safeRecord(String callee, Outcome outcome, long latencyMs) {
+        try {
+            recorder.recordCall(callee, outcome, latencyMs);
+        } catch (RuntimeException ignored) {
+            // Observability is never a Critical Dependency: measuring must not break the call being measured.
         }
     }
 
