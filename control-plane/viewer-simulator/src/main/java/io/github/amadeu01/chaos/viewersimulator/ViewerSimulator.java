@@ -63,16 +63,21 @@ public class ViewerSimulator {
     }
 
     private void launchViewers() {
-        viewerBudget += viewersPerSecond / (double) TICKS_PER_SECOND;
-        int launches = (int) viewerBudget;
-        viewerBudget -= launches;
-        for (int i = 0; i < launches; i++) {
-            String viewerId = "v-" + ThreadLocalRandom.current().nextInt(10_000);
-            journey.run(viewerId).thenAccept(started -> {
-                if (started) {
-                    sps.recordStart(System.currentTimeMillis());
-                }
-            });
+        try {
+            viewerBudget += viewersPerSecond / (double) TICKS_PER_SECOND;
+            int launches = (int) viewerBudget;
+            viewerBudget -= launches;
+            for (int i = 0; i < launches; i++) {
+                String viewerId = "v-" + ThreadLocalRandom.current().nextInt(10_000);
+                journey.run(viewerId).thenAccept(started -> {
+                    if (started) {
+                        sps.recordStart(System.currentTimeMillis());
+                    }
+                });
+            }
+        } catch (RuntimeException e) {
+            // An uncaught exception would silently cancel the fixed-rate task and SPS would drop to zero.
+            LOG.error("Viewer launch failed", e);
         }
     }
 

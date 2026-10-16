@@ -75,6 +75,7 @@ class ViewerJourneyTest {
         edge.stubFor(post("/play").willReturn(aResponse().withStatus(503)));
 
         assertThat(journey.run("v-1").join()).isFalse();
+        edge.verify(0, postRequestedFor(urlPathEqualTo("/ratings")));
     }
 
     @Test
