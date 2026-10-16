@@ -1,0 +1,36 @@
+/* Page-specific rules; colours and fonts come from the tokens in styles.css. */
+body.telemetry-page { height: auto; min-height: 100vh; display: block; }
+
+.top-bar select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.graphs { padding: 12px 16px; display: flex; flex-direction: column; gap: 16px; }
+.graphs.stale { opacity: .4; }
+
+.card {
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.card h2 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: baseline; gap: 10px; }
+.card .kind { margin-left: auto; }
+
+.dependencies { display: flex; flex-direction: column; gap: 12px; }
+.charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.chart-title { color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+.chart { min-width: 0; }
+.health-strip { display: block; width: 100%; height: 8px; margin-top: 6px; border-radius: 2px; }
+
+.uplot, .u-legend { color: var(--text); }
+.u-legend { font-size: 12px; }
+
+@media (max-width: 900px) {
+  .charts { grid-template-columns: minmax(0, 1fr); }
+}

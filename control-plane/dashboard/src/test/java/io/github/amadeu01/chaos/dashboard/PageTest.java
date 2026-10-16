@@ -39,6 +39,24 @@ class PageTest {
     }
 
     @Test
+    void servesTheTelemetryGraphsPageWithItsChartLibrary() {
+        given().when().get("/telemetry.html")
+                .then().statusCode(200)
+                .body(containsString("vendor/uPlot.iife.min.js"))
+                .body(containsString("href=\"index.html\""));
+        given().when().get("/vendor/uPlot.iife.min.js").then().statusCode(200);
+        given().when().get("/vendor/uPlot.min.css").then().statusCode(200);
+        given().when().get("/vendor/LICENSE-uplot").then().statusCode(200);
+        given().when().get("/telemetry.js").then().statusCode(200);
+        given().when().get("/telemetry.css").then().statusCode(200);
+    }
+
+    @Test
+    void dashboardLinksToTheTelemetryGraphs() {
+        given().when().get("/").then().statusCode(200).body(containsString("href=\"telemetry.html\""));
+    }
+
+    @Test
     void topologyShowsEveryServiceAndOnlyKnownDependencies() throws Exception {
         JsonNode topology = new ObjectMapper().readTree(given().get("/topology.json").then().statusCode(200).extract().asString());
 

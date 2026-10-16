@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telemetry graphs - Chaos Lecture Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="vendor/uPlot.min.css">
+  <link rel="stylesheet" href="telemetry.css">
+  <script src="vendor/uPlot.iife.min.js"></script>
+</head>
+<body class="telemetry-page">
+  <header class="top-bar">
+    <h1>Telemetry graphs</h1>
+    <a href="index.html">Back to the dashboard</a>
+    <label class="rate">Window
+      <select id="window-select">
+        <option value="1">1 minute</option>
+        <option value="5" selected>5 minutes</option>
+        <option value="10">10 minutes</option>
+      </select>
+    </label>
+    <span id="connection" class="connection">connecting…</span>
+  </header>
+
+  <main id="graphs" class="graphs">
+    <section class="card sps-card" aria-label="Steady State">
+      <h2>SPS <span class="label">Playback Starts per second</span></h2>
+      <div id="sps-chart" class="chart chart-wide"></div>
+    </section>
+    <div id="dependencies" class="dependencies"></div>
+  </main>
+
+  <script src="telemetry.js"></script>
+</body>
+</html>
