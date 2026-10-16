@@ -207,19 +207,35 @@ function details(rows) {
   return list;
 }
 
+const RATE_REFRESH_MS = 5000;
+
+/** The slider follows the real rate (someone else may have changed it); it is left alone while being dragged. */
 async function setupRateSlider() {
   const slider = document.getElementById('rate');
   const output = document.getElementById('rate-value');
-  try {
-    const response = await fetch('api/viewers-per-second');
-    if (response.ok) {
-      const { viewersPerSecond } = await response.json();
-      slider.value = viewersPerSecond;
-      output.value = viewersPerSecond;
+  let dragging = false;
+  const refresh = async () => {
+    if (dragging) return;
+    try {
+      const response = await fetch('api/viewers-per-second');
+      if (response.ok && !dragging) {
+        const { viewersPerSecond } = await response.json();
+        slider.value = viewersPerSecond;
+        output.value = viewersPerSecond;
+      }
+    } catch (unreachable) {
+      output.value = '?';
     }
-  } catch (unreachable) {
-    output.value = '?';
-  }
+  };
+  slider.addEventListener('pointerdown', () => { dragging = true; });
+  slider.addEventListener('keydown', () => { dragging = true; });
   slider.addEventListener('input', () => { output.value = slider.value; });
-  slider.addEventListener('change', () => fetch(`api/viewers-per-second?value=${slider.value}`, { method: 'PUT' }));
+  slider.addEventListener('change', () => {
+    dragging = false;
+    fetch(`api/viewers-per-second?value=${slider.value}`, { method: 'PUT' });
+  });
+  slider.addEventListener('pointerup', () => { dragging = false; });
+  slider.addEventListener('blur', () => { dragging = false; });
+  await refresh();
+  setInterval(refresh, RATE_REFRESH_MS);
 }

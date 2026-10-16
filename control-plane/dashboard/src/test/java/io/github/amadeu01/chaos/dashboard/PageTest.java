@@ -52,6 +52,13 @@ class PageTest {
     }
 
     @Test
+    void staticFilesAreRevalidatedNotCachedAsImmutable() {
+        String cacheControl = given().when().get("/app.js").then().statusCode(200).extract().header("Cache-Control");
+
+        assertThat(cacheControl == null ? "" : cacheControl).doesNotContain("immutable");
+    }
+
+    @Test
     void dashboardLinksToTheTelemetryGraphs() {
         given().when().get("/").then().statusCode(200).body(containsString("href=\"telemetry.html\""));
     }
