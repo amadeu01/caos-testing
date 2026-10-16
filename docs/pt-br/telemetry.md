@@ -26,6 +26,8 @@ Quando o telemetry está lento ou fora do ar, os Services continuam atendendo. O
 
 `curl 'http://127.0.0.1:8082/sps?from=0'` traz o SPS segundo a segundo dos últimos dez minutos.
 
+`curl "http://127.0.0.1:8082/windows?from=$(( ($(date +%s) - 300) * 1000 ))"` devolve o mesmo snapshot para cada segundo assentado de `from` (milissegundos desde a época) até o último assentado, do mais antigo ao mais novo, como um array JSON. `from` é limitado aos 600 segundos que o telemetry guarda, e um segundo sem dados volta vazio (SPS zerado, sem Dependencies). A página de gráficos de telemetria carrega o histórico daqui.
+
 ## A regra de saúde
 
 Vale a primeira que se aplicar:

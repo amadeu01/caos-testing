@@ -14,6 +14,15 @@ The view runs about 2 s behind real time: it shows the last settled second ([tel
 
 `telemetry unavailable` also appears when telemetry answers with something that is not JSON, not only when it is unreachable. In that state, and while the dashboard reconnects, the graph dims and SPS shows `–`, so a stale picture is never mistaken for a healthy one.
 
+## Telemetry graphs
+
+The **Telemetry graphs** link in the top bar opens `http://127.0.0.1:8080/telemetry.html`, which charts the last 1, 5 (default) or 10 minutes. Use it to see *when* each Dependency broke and recovered, which the topology's single "now" cannot show.
+
+- **SPS** across the top: Steady State over time. Control and Experiment lines appear only when they are non-zero.
+- **One card per Dependency** (`caller → callee`): calls per second, error percentage, and p50 and p99 latency in ms. The thin strip under each card has one cell per second, coloured green, amber or red by the Dependency's health, grey when there was no data.
+
+Stop a Service and watch error % and p99 climb on the Dependencies that call it, then the strip turn red; start it again and read off how long recovery took. History loads once, then the page follows the same live connection as the dashboard and dims when telemetry is unavailable.
+
 ## Try it
 
 1. Watch SPS settle around 50.

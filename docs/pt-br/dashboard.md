@@ -14,6 +14,15 @@ A visão roda cerca de 2 s atrás do tempo real: ela mostra o último segundo as
 
 `telemetry unavailable` também aparece quando o telemetry responde algo que não é JSON, e não apenas quando ele está inalcançável. Nesse estado, e enquanto o dashboard se reconecta, o grafo escurece e o SPS mostra `–`, para que uma imagem velha nunca seja confundida com uma plataforma saudável.
 
+## Gráficos de telemetria
+
+O link **Telemetry graphs** na barra superior abre `http://127.0.0.1:8080/telemetry.html`, que traça os últimos 1, 5 (padrão) ou 10 minutos. Use-o para ver *quando* cada **Dependency** quebrou e se recuperou, o que o "agora" único da topologia não mostra.
+
+- **SPS** no topo: o **Steady State** (estado estável) ao longo do tempo. As linhas de Control e Experiment só aparecem quando são diferentes de zero.
+- **Um cartão por Dependency** (`caller → callee`): chamadas por segundo, percentual de erro e latência p50 e p99 em ms. A faixa fina sob cada cartão tem uma célula por segundo, verde, âmbar ou vermelha conforme a saúde da Dependency, cinza quando não houve dados.
+
+Pare um Service e veja o erro % e o p99 subirem nas Dependencies que o chamam, depois a faixa ficar vermelha; inicie-o de novo e leia quanto tempo a recuperação levou. O histórico carrega uma vez; depois a página segue a mesma conexão ao vivo do dashboard e escurece quando o telemetry está indisponível.
+
 ## Experimente
 
 1. Veja o SPS se estabilizar perto de 50.

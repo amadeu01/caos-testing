@@ -26,6 +26,8 @@ When telemetry is slow or down, Services keep serving. The buffer drops events a
 
 `curl 'http://127.0.0.1:8082/sps?from=0'` gives SPS second by second for the last ten minutes.
 
+`curl "http://127.0.0.1:8082/windows?from=$(( ($(date +%s) - 300) * 1000 ))"` returns the same snapshot for every settled second from `from` (epoch milliseconds) to the last settled one, oldest first, as a JSON array. `from` is clamped to the 600 seconds telemetry keeps, and a second without data comes back empty (SPS zeros, no Dependencies). The telemetry graphs page loads its history from here.
+
 ## The health rule
 
 First match wins:
