@@ -70,7 +70,22 @@ public class Aggregator {
 
     public synchronized Snapshot latest() {
         long now = clock.getAsLong();
-        long second = lastSettledSecond(now);
+        return snapshot(lastSettledSecond(now), now);
+    }
+
+    /** One snapshot per settled second from {@code fromMs}, clamped to the ring, oldest first. */
+    public synchronized List<Snapshot> windows(long fromMs) {
+        long now = clock.getAsLong();
+        long last = lastSettledSecond(now);
+        long first = Math.max(fromMs / 1000, last - WINDOWS_KEPT + 1);
+        List<Snapshot> history = new ArrayList<>();
+        for (long second = first; second <= last; second++) {
+            history.add(snapshot(second, now));
+        }
+        return history;
+    }
+
+    private Snapshot snapshot(long second, long now) {
         Window window = existing(second);
         List<DependencyView> dependencies = window == null ? List.of() : window.dependencyViews();
         TreeSet<String> names = new TreeSet<>(lastSeen.keySet());

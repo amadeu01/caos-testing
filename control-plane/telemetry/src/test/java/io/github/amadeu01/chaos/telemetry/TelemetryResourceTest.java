@@ -47,6 +47,19 @@ class TelemetryResourceTest {
     }
 
     @Test
+    void windowsListsHistoryIncludingAPostedBatch() {
+        long recent = System.currentTimeMillis() - 2_500;
+        given().contentType(ContentType.JSON)
+                .body(WIRE_FORMAT.replace("\"timestamp\":1000", "\"timestamp\":" + recent))
+                .when().post("/events").then().statusCode(202);
+
+        given().when().get("/windows?from=" + (recent - 5_000))
+                .then().statusCode(200)
+                .body("services.name.flatten()", hasItem("api"))
+                .body("dependencies.callee.flatten()", hasItem("profile"));
+    }
+
+    @Test
     void emptyBodyIsBadRequest() {
         given().contentType(ContentType.JSON)
                 .when().post("/events")

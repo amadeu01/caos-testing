@@ -158,4 +158,34 @@ class AggregatorTest {
         assertThat(series).extracting(SpsPoint::timestamp)
                 .containsExactly(settledSecondMs() - 2_000, settledSecondMs() - 1_000, settledSecondMs());
     }
+
+    @Test
+    void windowsReturnsOneSnapshotPerSettledSecond() {
+        long last = settledSecondMs();
+        aggregator.ingest(new EventBatch("api", 0, List.of(call(last - 1_000 + 100, "api", "profile", "OK", 5)),
+                List.of(new StartEvent(last + 100, "none"))));
+
+        List<Snapshot> windows = aggregator.windows(last - 2_000);
+
+        assertThat(windows).extracting(Snapshot::timestamp).containsExactly(last - 2_000, last - 1_000, last);
+        assertThat(windows.get(1).dependencies()).singleElement().satisfies(d -> assertThat(d.callee()).isEqualTo("profile"));
+        assertThat(windows.get(2).sps().total()).isEqualTo(1);
+        assertThat(windows.get(2)).isEqualTo(aggregator.latest());
+    }
+
+    @Test
+    void windowsIsClampedToTheRing() {
+        List<Snapshot> windows = aggregator.windows(0);
+
+        assertThat(windows).hasSize(Aggregator.WINDOWS_KEPT);
+        assertThat(windows.get(windows.size() - 1).timestamp()).isEqualTo(settledSecondMs());
+    }
+
+    @Test
+    void windowsSecondWithoutDataIsEmpty() {
+        Snapshot only = aggregator.windows(settledSecondMs()).get(0);
+
+        assertThat(only.sps().total()).isZero();
+        assertThat(only.dependencies()).isEmpty();
+    }
 }
