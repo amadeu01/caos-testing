@@ -61,6 +61,21 @@ class LiveSocketTest {
                 .isEqualTo(LivePublisher.UNAVAILABLE);
     }
 
+    @Test
+    void saysUnavailableWhenTelemetryAnswersGarbage() throws Exception {
+        wireMock.stubFor(get("/windows/latest").willReturn(
+                aResponse().withStatus(200).withHeader("Content-Type", "text/html").withBody("<html>proxy error</html>")));
+
+        assertThat(firstMessageMatching(m -> true)).isEqualTo(LivePublisher.UNAVAILABLE);
+    }
+
+    @Test
+    void saysUnavailableWhenTelemetryAnswersEmpty() throws Exception {
+        wireMock.stubFor(get("/windows/latest").willReturn(aResponse().withStatus(200).withBody("")));
+
+        assertThat(firstMessageMatching(m -> true)).isEqualTo(LivePublisher.UNAVAILABLE);
+    }
+
     private String firstMessageMatching(Predicate<String> wanted) throws Exception {
         BlockingQueue<String> messages = new LinkedBlockingQueue<>();
         URI ws = URI.create(live.toString().replaceFirst("^http", "ws"));

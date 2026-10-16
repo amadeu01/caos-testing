@@ -9,6 +9,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.github.tomakehurst.wiremock.http.Fault;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -53,5 +55,12 @@ class ViewerRateResourceTest {
         wireMock.stubFor(put(urlPathEqualTo("/viewers-per-second")).willReturn(aResponse().withStatus(400)));
 
         given().when().put("/api/viewers-per-second?value=999").then().statusCode(400);
+    }
+
+    @Test
+    void answersBadGatewayWhenSimulatorIsUnreachable() {
+        wireMock.stubFor(get("/viewers-per-second").willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+        given().when().get("/api/viewers-per-second").then().statusCode(502);
     }
 }

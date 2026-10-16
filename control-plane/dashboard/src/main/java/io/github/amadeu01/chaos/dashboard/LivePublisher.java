@@ -1,5 +1,7 @@
 package io.github.amadeu01.chaos.dashboard;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.websockets.next.OpenConnections;
 import io.quarkus.websockets.next.WebSocketConnection;
@@ -18,6 +20,9 @@ public class LivePublisher {
     @Inject
     @RestClient
     TelemetryClient telemetry;
+
+    @Inject
+    ObjectMapper mapper;
 
     @Inject
     OpenConnections connections;
@@ -39,8 +44,17 @@ public class LivePublisher {
 
     String message() {
         try {
-            return "{\"type\":\"window\",\"window\":" + telemetry.latest() + "}";
-        } catch (RuntimeException e) {
+            String body = telemetry.latest();
+            if (body == null || body.isBlank()) {
+                return UNAVAILABLE;
+            }
+            JsonNode tree = mapper.readTree(body);
+            if (tree == null || !tree.isObject()) {
+                LOG.debug("telemetry answered something other than a JSON object");
+                return UNAVAILABLE;
+            }
+            return mapper.writeValueAsString(mapper.createObjectNode().put("type", "window").set("window", tree));
+        } catch (RuntimeException | com.fasterxml.jackson.core.JsonProcessingException e) {
             LOG.debugf("telemetry unavailable: %s", e.getMessage());
             return UNAVAILABLE;
         }
