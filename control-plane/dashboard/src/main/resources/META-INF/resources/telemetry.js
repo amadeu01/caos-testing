@@ -3,7 +3,7 @@
 const COLORS = { green: '#2e9e5b', amber: '#e0a526', red: '#d64545', accent: '#8ab4f8', muted: '#9aa0a6',
   line: '#3c4043', none: '#2a2d34' };
 const RING_SECONDS = 600;
-const state = { snapshots: [], minutes: 5, charts: [], loaded: false, drawQueued: false };
+const state = { snapshots: [], minutes: 5, charts: [], loaded: false, loading: false, drawQueued: false, spsShown: [false, false] };
 
 main();
 
@@ -19,6 +19,8 @@ async function main() {
 
 /** Initial history, loaded once; the live socket keeps it current afterwards. */
 async function loadHistory() {
+  if (state.loading) return;
+  state.loading = true;
   try {
     const response = await fetch(`api/telemetry/windows?from=${Date.now() - RING_SECONDS * 1000}`);
     if (!response.ok) return;
@@ -29,6 +31,8 @@ async function loadHistory() {
     scheduleDraw();
   } catch (unreachable) {
     // The next live message retries.
+  } finally {
+    state.loading = false;
   }
 }
 
@@ -102,8 +106,13 @@ function draw() {
   const experiment = spsOf('experiment');
   const sps = state.spsChart;
   sps.setData([seconds, spsOf('total'), control, experiment]);
-  sps.setSeries(2, { show: control.some(v => v) });
-  sps.setSeries(3, { show: experiment.some(v => v) });
+  [control, experiment].forEach((values, i) => {
+    const show = values.some(v => v);
+    if (show !== state.spsShown[i]) {
+      state.spsShown[i] = show;
+      sps.setSeries(i + 2, { show });
+    }
+  });
 
   state.charts.forEach(({ edge, rate, errors, latency, strip }) => {
     const deps = snapshots.map(s => dependencyOf(s, edge) || null);
