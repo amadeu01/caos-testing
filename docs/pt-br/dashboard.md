@@ -12,7 +12,7 @@ Abra `http://127.0.0.1:8080` depois de `scripts/platform-up.sh` (ou do **Platfor
 
 A visão roda cerca de 2 s atrás do tempo real: ela mostra o último segundo assentado ([telemetria](telemetry.md)).
 
-`telemetry unavailable` também aparece quando o telemetry responde algo que não é JSON, e não apenas quando ele está inalcançável.
+`telemetry unavailable` também aparece quando o telemetry responde algo que não é JSON, e não apenas quando ele está inalcançável. Nesse estado, e enquanto o dashboard se reconecta, o grafo escurece e o SPS mostra `–`, para que uma imagem velha nunca seja confundida com uma plataforma saudável.
 
 ## Experimente
 
@@ -20,4 +20,4 @@ A visão roda cerca de 2 s atrás do tempo real: ela mostra o último segundo as
 2. `docker compose stop recommendations`. Em segundos o recommendations fica vermelho, depois o api e o edge-gateway, e o SPS cai para 0: uma **Non-critical Dependency** (dependência não crítica) derrubou a plataforma inteira. Esse é o **Act** 2 (ato 2), a **Cascading Failure** (falha em cascata).
 3. `docker compose start recommendations` e veja o Steady State voltar.
 
-O dashboard só mostra; as **Faults** (falhas) e os controles de **Resilience Policy** chegam nas próximas fatias.
+Fora o controle de Viewers/s, o dashboard só mostra; as **Faults** (falhas) e os controles de **Resilience Policy** chegam nas próximas fatias.

@@ -13,6 +13,7 @@ async function main() {
   connectLive(cy);
   setupRateSlider();
   animateEdges(cy);
+  new ResizeObserver(drawSpsChart).observe(document.getElementById('sps-chart'));
 }
 
 function createGraph(topology) {
@@ -59,10 +60,12 @@ function connectLive(cy) {
       render(cy, message.window);
     } else {
       setConnection('telemetry unavailable', 'down');
+      showStale(cy);
     }
   };
   socket.onclose = () => {
     setConnection('reconnecting…', 'down');
+    showStale(cy);
     setTimeout(() => connectLive(cy), 2000);
   };
 }
@@ -73,7 +76,19 @@ function setConnection(text, css) {
   status.className = `connection ${css}`;
 }
 
+/** With no fresh data the last picture would lie: clear health and rates, dim the graph. */
+function showStale(cy) {
+  cy.elements().removeClass('health-green health-amber health-red');
+  cy.edges().forEach(edge => {
+    edge.data('rate', 0);
+    edge.data('label', '');
+  });
+  document.getElementById('sps-value').textContent = '–';
+  document.querySelector('main').classList.add('stale');
+}
+
 function render(cy, snapshot) {
+  document.querySelector('main').classList.remove('stale');
   state.snapshot = snapshot;
   const health = new Map(snapshot.services.map(s => [s.name, s.health.toLowerCase()]));
   cy.nodes().forEach(node => {
@@ -115,8 +130,10 @@ function pushSps(total) {
 function drawSpsChart() {
   const canvas = document.getElementById('sps-chart');
   const ratio = window.devicePixelRatio || 1;
-  canvas.width = canvas.clientWidth * ratio;
-  canvas.height = canvas.clientHeight * ratio;
+  const w = Math.round(canvas.clientWidth * ratio);
+  const h = Math.round(canvas.clientHeight * ratio);
+  if (canvas.width !== w) canvas.width = w;
+  if (canvas.height !== h) canvas.height = h;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const values = state.spsHistory;

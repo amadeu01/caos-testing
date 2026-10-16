@@ -12,7 +12,7 @@ Open `http://127.0.0.1:8080` after `scripts/platform-up.sh` (or IntelliJ's **Pla
 
 The view runs about 2 s behind real time: it shows the last settled second ([telemetry](telemetry.md)).
 
-`telemetry unavailable` also appears when telemetry answers with something that is not JSON, not only when it is unreachable.
+`telemetry unavailable` also appears when telemetry answers with something that is not JSON, not only when it is unreachable. In that state, and while the dashboard reconnects, the graph dims and SPS shows `–`, so a stale picture is never mistaken for a healthy one.
 
 ## Try it
 
@@ -20,4 +20,4 @@ The view runs about 2 s behind real time: it shows the last settled second ([tel
 2. `docker compose stop recommendations`. Within seconds recommendations turns red, then api and edge-gateway, and SPS falls to 0: a Non-critical Dependency took the whole platform down. That is Act 2, the Cascading Failure.
 3. `docker compose start recommendations` and watch Steady State return.
 
-The dashboard only reads; Faults and Resilience Policy switches arrive in the next slices.
+Apart from the Viewers/s slider, the dashboard only reads; Faults and Resilience Policy switches arrive in the next slices.
