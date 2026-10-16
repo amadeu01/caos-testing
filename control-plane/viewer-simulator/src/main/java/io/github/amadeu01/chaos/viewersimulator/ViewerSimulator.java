@@ -1,6 +1,7 @@
 package io.github.amadeu01.chaos.viewersimulator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.amadeu01.chaos.libtelemetry.Telemetry;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
@@ -36,7 +37,7 @@ public class ViewerSimulator {
     ObjectMapper mapper;
 
     @Inject
-    io.github.amadeu01.chaos.libtelemetry.Telemetry telemetry;
+    Telemetry telemetry;
 
     private final SpsCounter sps = new SpsCounter();
     private ScheduledExecutorService ticker;

@@ -129,4 +129,16 @@ class ViewerJourneyTest {
 
         assertThat(recorded).containsExactly(Outcome.ERROR);
     }
+
+    @Test
+    void aFailingRecorderDoesNotChangeTheJourney() {
+        edge.stubFor(get(urlPathEqualTo("/home")).willReturn(okJson(
+                "{\"titles\":[{\"id\":\"t01\"}],\"recommendedTitleIds\":[\"t09\"]}")));
+        ViewerJourney failing = new ViewerJourney(HttpClient.newHttpClient(), new ObjectMapper(),
+                URI.create(edge.baseUrl()), (callee, outcome, latencyMs) -> {
+                    throw new IllegalStateException("recorder broke");
+                });
+
+        assertThat(failing.run("v-1").join()).isTrue();
+    }
 }

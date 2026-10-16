@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.amadeu01.chaos.libtelemetry.CallRecorder;
 import io.github.amadeu01.chaos.libtelemetry.Outcome;
 
+import org.jboss.logging.Logger;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -19,6 +21,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * The journey is a Playback Start only if both the home page and play succeed.
  */
 public class ViewerJourney {
+
+    private static final Logger LOG = Logger.getLogger(ViewerJourney.class);
 
     static final String EDGE = "edge-gateway";
     static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
@@ -76,9 +80,18 @@ public class ViewerJourney {
     private CompletableFuture<HttpResponse<String>> send(HttpRequest.Builder request) {
         long start = System.nanoTime();
         return http.sendAsync(request.timeout(REQUEST_TIMEOUT).build(), HttpResponse.BodyHandlers.ofString())
-                .whenComplete((response, failure) -> recorder.recordCall(EDGE,
+                .whenComplete((response, failure) -> record(
                         failure != null || response.statusCode() >= 500 ? Outcome.ERROR : Outcome.OK,
                         (System.nanoTime() - start) / 1_000_000));
+    }
+
+    /** Recording must never change a journey's result: the measuring must not alter what it measures. */
+    private void record(Outcome outcome, long latencyMs) {
+        try {
+            recorder.recordCall(EDGE, outcome, latencyMs);
+        } catch (RuntimeException e) {
+            LOG.debug("Could not record call to " + EDGE, e);
+        }
     }
 
     private HttpRequest.Builder postJson(String path, String json) {
