@@ -29,6 +29,7 @@ High Volume, Distributed System" (2012).
 | Code | Use for |
 |---|---|
 | `:tada:` | The initial commit |
+| `:building_construction:` | Project structure: modules, build layout |
 | `:memo:` | Docs, ADRs, glossary, lecture guide |
 | `:sparkles:` | A new Service, feature or Experiment |
 | `:construction:` | Work in progress that still builds |
