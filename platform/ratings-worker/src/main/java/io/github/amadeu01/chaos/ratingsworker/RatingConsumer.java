@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +25,7 @@ public class RatingConsumer {
 
     static final String TABLE = "ratings";
     static final int BATCH_SIZE = 10;
+    static final int MAX_BATCHES_PER_POLL = 50;
     private static final Logger LOG = Logger.getLogger(RatingConsumer.class);
 
     @Inject
@@ -42,10 +44,16 @@ public class RatingConsumer {
 
     @Scheduled(every = "1s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void poll() {
-        for (Message message : sqs.receiveMessage(request -> request.queueUrl(queueUrl())
-                .maxNumberOfMessages(BATCH_SIZE)).messages()) {
-            handle(message);
-            sqs.deleteMessage(request -> request.queueUrl(queueUrl()).receiptHandle(message.receiptHandle()));
+        for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
+            List<Message> messages = sqs.receiveMessage(request -> request.queueUrl(queueUrl())
+                    .maxNumberOfMessages(BATCH_SIZE)).messages();
+            if (messages.isEmpty()) {
+                return;
+            }
+            for (Message message : messages) {
+                handle(message);
+                sqs.deleteMessage(request -> request.queueUrl(queueUrl()).receiptHandle(message.receiptHandle()));
+            }
         }
     }
 
