@@ -2,7 +2,10 @@ package io.github.amadeu01.chaos.libtelemetry;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,6 +73,72 @@ class TelemetryBufferTest {
         });
 
         assertThat(buffer.drain().dropped()).isEqualTo(1);
+    }
+
+    @Test
+    void noNewSendWhileOneIsInFlight() {
+        AtomicInteger sends = new AtomicInteger();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        List<EventBatch> batches = new ArrayList<>();
+        BatchSender sender = batch -> {
+            sends.incrementAndGet();
+            batches.add(batch);
+            CompletableFuture<Void> f = new CompletableFuture<>();
+            futures.add(f);
+            return f;
+        };
+
+        buffer.recordCall("profile", Outcome.OK, 1);
+        buffer.flushTo(sender);
+        buffer.flushTo(sender);
+        assertThat(sends).hasValue(1);
+
+        futures.get(0).complete(null);
+        buffer.recordCall("catalog", Outcome.OK, 2);
+        buffer.flushTo(sender);
+
+        assertThat(sends).hasValue(2);
+        assertThat(batches.get(1).calls()).extracting(CallEvent::callee).containsExactly("catalog");
+    }
+
+    @Test
+    void eventsWaitInTheBufferWhileASendIsInFlight() {
+        CompletableFuture<Void> first = new CompletableFuture<>();
+        List<EventBatch> batches = new ArrayList<>();
+        buffer.flushTo(batch -> first);
+
+        buffer.recordCall("profile", Outcome.OK, 1);
+        buffer.flushTo(batch -> {
+            batches.add(batch);
+            return CompletableFuture.completedFuture(null);
+        });
+        assertThat(batches).isEmpty();
+
+        first.complete(null);
+        buffer.flushTo(batch -> {
+            batches.add(batch);
+            return CompletableFuture.completedFuture(null);
+        });
+
+        assertThat(batches).singleElement().satisfies(b -> {
+            assertThat(b.calls()).hasSize(1);
+            assertThat(b.dropped()).isZero();
+        });
+    }
+
+    @Test
+    void senderReturningNullIsAFailedSend() {
+        buffer.recordCall("profile", Outcome.OK, 1);
+        buffer.flushTo(batch -> null);
+
+        AtomicReference<EventBatch> sent = new AtomicReference<>();
+        buffer.flushTo(batch -> {
+            sent.set(batch);
+            return CompletableFuture.completedFuture(null);
+        });
+
+        assertThat(sent.get()).isNotNull();
+        assertThat(sent.get().dropped()).isEqualTo(1);
     }
 
     @Test

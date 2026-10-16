@@ -36,16 +36,22 @@ public class Telemetry implements CallRecorder {
     @PostConstruct
     void init() {
         buffer = new TelemetryBuffer(service, BUFFER_CAPACITY);
-        sender = new HttpBatchSender(HttpClient.newBuilder().connectTimeout(SEND_TIMEOUT).build(),
+        sender = new HttpBatchSender(HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(SEND_TIMEOUT).build(),
                 mapper, url.resolve("/events"), SEND_TIMEOUT);
     }
 
     @Override
     public void recordCall(String callee, Outcome outcome, long latencyMs) {
+        if (!enabled) {
+            return;
+        }
         buffer.recordCall(callee, outcome, latencyMs);
     }
 
     public void recordStart() {
+        if (!enabled) {
+            return;
+        }
         buffer.recordStart();
     }
 

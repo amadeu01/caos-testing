@@ -10,7 +10,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-/** POSTs a batch to telemetry asynchronously, with a short timeout so a slow telemetry never piles up requests. */
+/** POSTs a batch to telemetry asynchronously; the timeout bounds one request, TelemetryBuffer allows only one in flight. */
 final class HttpBatchSender implements BatchSender {
 
     private final HttpClient http;

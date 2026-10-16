@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -19,6 +20,7 @@ public final class TelemetryBuffer {
     private final BlockingQueue<CallEvent> calls;
     private final BlockingQueue<StartEvent> starts;
     private final AtomicLong dropped = new AtomicLong();
+    private final AtomicBoolean inFlight = new AtomicBoolean();
 
     public TelemetryBuffer(String service, int capacity) {
         this(service, capacity, System::currentTimeMillis);
@@ -51,19 +53,29 @@ public final class TelemetryBuffer {
         return new EventBatch(service, dropped.getAndSet(0), drainedCalls, drainedStarts);
     }
 
-    /** Sends everything recorded so far; an undelivered batch is added to the next batch's drop count. */
+    /**
+     * Sends everything recorded so far, one batch at a time: while a send is in flight nothing is drained and
+     * events stay buffered (bounded by capacity). An undelivered batch is added to the next batch's drop count.
+     */
     public void flushTo(BatchSender sender) {
+        if (!inFlight.compareAndSet(false, true)) {
+            return;
+        }
         EventBatch batch = drain();
         CompletableFuture<Void> sent;
         try {
             sent = sender.send(batch);
-        } catch (RuntimeException e) {
+            if (sent == null) {
+                sent = CompletableFuture.failedFuture(new IllegalStateException("sender returned no future"));
+            }
+        } catch (Throwable e) {
             sent = CompletableFuture.failedFuture(e);
         }
         sent.whenComplete((ignored, failure) -> {
             if (failure != null) {
                 dropped.addAndGet(batch.eventCount() + batch.dropped());
             }
+            inFlight.set(false);
         });
     }
 }
