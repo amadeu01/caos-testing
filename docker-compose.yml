@@ -19,6 +19,7 @@ services:
   store:
     image: amazon/dynamodb-local:3.3.2
     command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    mem_limit: 512m
     restart: unless-stopped
 
   store-init:
@@ -35,11 +36,13 @@ services:
       - ./infra/elasticmq/elasticmq.conf:/opt/elasticmq.conf:ro
     ports:
       - "127.0.0.1:9325:9325"   # ElasticMQ web UI: watch the ratings queue
+    mem_limit: 256m
     restart: unless-stopped
 
   cache:
     image: redis:8.8.3
     command: ["redis-server", "--save", "", "--appendonly", "no"]
+    mem_limit: 128m
     restart: unless-stopped
 
   # --- Platform Services ---------------------------------------------------
@@ -54,7 +57,8 @@ services:
   playback:
     <<: *quarkus
     build: { context: ./platform/playback, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
-    depends_on: [license]
+    depends_on:
+      license: { condition: service_healthy }
 
   recommendations:
     <<: *quarkus
@@ -70,14 +74,20 @@ services:
   api:
     <<: *quarkus
     build: { context: ./platform/api, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
-    depends_on: [profile, catalog, recommendations, playback, queue]
+    depends_on:
+      profile: { condition: service_healthy }
+      catalog: { condition: service_healthy }
+      recommendations: { condition: service_healthy }
+      playback: { condition: service_healthy }
+      queue: { condition: service_started }
 
   edge-gateway:
     <<: *quarkus
     build: { context: ./platform/edge-gateway, dockerfile: ../../docker/quarkus-jvm.Dockerfile }
     ports:
       - "127.0.0.1:8000:8080"
-    depends_on: [api]
+    depends_on:
+      api: { condition: service_healthy }
 
   ratings-worker:
     <<: *quarkus
