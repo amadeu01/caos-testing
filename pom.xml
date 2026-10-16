@@ -12,6 +12,7 @@
 
     <modules>
         <module>libs/test-support</module>
+        <module>libs/lib-telemetry</module>
         <module>platform/edge-gateway</module>
         <module>platform/api</module>
         <module>platform/profile</module>
@@ -66,6 +67,11 @@
             <dependency>
                 <groupId>io.github.amadeu01.chaos</groupId>
                 <artifactId>test-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.amadeu01.chaos</groupId>
+                <artifactId>lib-telemetry</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
