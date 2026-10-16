@@ -37,3 +37,6 @@ Thumbs.db
 
 # Superpowers brainstorming companion (mockups, local only)
 .superpowers/
+
+# Git worktrees used by parallel coding agents
+.claude/worktrees/
