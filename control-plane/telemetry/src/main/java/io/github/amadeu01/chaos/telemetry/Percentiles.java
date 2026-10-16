@@ -12,7 +12,7 @@ final class Percentiles {
         if (sorted.isEmpty()) {
             return 0;
         }
-        int rank = (int) Math.ceil(quantile * sorted.size());
+        int rank = (int) Math.ceil(quantile * sorted.size() - 1e-9);
         return sorted.get(Math.max(rank, 1) - 1);
     }
 }

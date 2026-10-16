@@ -17,6 +17,12 @@ class PercentilesTest {
     }
 
     @Test
+    void p99OfThreeHundredValues() {
+        List<Long> values = LongStream.rangeClosed(1, 300).boxed().toList();
+        assertThat(Percentiles.of(values, 0.99)).isEqualTo(297);
+    }
+
+    @Test
     void emptyIsZero() {
         assertThat(Percentiles.of(List.of(), 0.99)).isZero();
     }

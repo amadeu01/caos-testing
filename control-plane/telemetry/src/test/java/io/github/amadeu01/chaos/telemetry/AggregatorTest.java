@@ -44,6 +44,37 @@ class AggregatorTest {
     }
 
     @Test
+    void batchWithoutServiceIsIgnoredAndDoesNotBreakTheLatestWindow() {
+        long t = lastCompleteSecondMs() + 100;
+        aggregator.ingest(new EventBatch(null, 0, List.of(call(t, "ghost", "phantom", "OK", 1)), List.of()));
+        aggregator.ingest(new EventBatch("  ", 0, List.of(call(t, "ghost", "phantom", "OK", 1)), List.of()));
+        aggregator.ingest(new EventBatch("api", 0, List.of(call(t, "api", "profile", "OK", 1)), List.of()));
+
+        Snapshot snapshot = aggregator.latest();
+
+        assertThat(snapshot.dependencies()).extracting(DependencyView::caller).containsExactly("api");
+        assertThat(snapshot.services()).extracting(ServiceHealth::name).containsExactly("api", "profile");
+    }
+
+    @Test
+    void invalidEventsAreSkippedAndValidOnesKept() {
+        long t = lastCompleteSecondMs() + 100;
+        java.util.ArrayList<CallEvent> calls = new java.util.ArrayList<>();
+        calls.add(call(t, "api", null, "OK", 1));
+        calls.add(call(t, "api", "profile", null, 1));
+        calls.add(null);
+        calls.add(call(t, "api", "profile", "OK", 5));
+        java.util.ArrayList<StartEvent> starts = new java.util.ArrayList<>();
+        starts.add(null);
+        aggregator.ingest(new EventBatch("api", 0, calls, starts));
+
+        assertThat(aggregator.latest().dependencies()).singleElement().satisfies(d -> {
+            assertThat(d.callsPerSecond()).isEqualTo(1);
+            assertThat(d.p99Ms()).isEqualTo(5);
+        });
+    }
+
+    @Test
     void countsPlaybackStartsPerGroup() {
         long t = lastCompleteSecondMs() + 100;
         aggregator.ingest(new EventBatch("viewer-simulator", 0, List.of(), List.of(

@@ -47,6 +47,13 @@ class TelemetryResourceTest {
     }
 
     @Test
+    void emptyBodyIsBadRequest() {
+        given().contentType(ContentType.JSON)
+                .when().post("/events")
+                .then().statusCode(400);
+    }
+
+    @Test
     void unknownGroupIsBadRequest() {
         given().when().get("/sps?group=everyone&from=0").then().statusCode(400);
     }

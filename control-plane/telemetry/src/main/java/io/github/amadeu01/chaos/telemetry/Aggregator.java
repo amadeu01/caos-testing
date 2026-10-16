@@ -28,10 +28,16 @@ public class Aggregator {
     }
 
     public synchronized void ingest(EventBatch batch) {
+        if (isBlank(batch.service())) {
+            return;
+        }
         long now = clock.getAsLong();
         lastSeen.put(batch.service(), now);
         if (batch.calls() != null) {
             for (CallEvent call : batch.calls()) {
+                if (call == null || isBlank(call.caller()) || isBlank(call.callee()) || isBlank(call.outcome())) {
+                    continue;
+                }
                 Window window = windowFor(call.timestamp(), now);
                 if (window != null) {
                     window.recordCall(call);
@@ -40,12 +46,19 @@ public class Aggregator {
         }
         if (batch.starts() != null) {
             for (StartEvent start : batch.starts()) {
+                if (start == null) {
+                    continue;
+                }
                 Window window = windowFor(start.timestamp(), now);
                 if (window != null) {
                     window.recordStart(start.group());
                 }
             }
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public synchronized Snapshot latest() {
