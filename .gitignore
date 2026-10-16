@@ -1,0 +1,36 @@
+# Build output (Maven and Gradle; the build tool is chosen in an ADR)
+target/
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Quarkus
+.quarkus/
+quarkus.log*
+
+# IntelliJ IDEA: keep shared run configurations in .run/, ignore the rest
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Other editors
+.vscode/
+*.swp
+
+# Java
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
