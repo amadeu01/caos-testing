@@ -12,6 +12,7 @@
 
     <modules>
         <module>libs/test-support</module>
+        <module>platform/catalog</module>
         <module>platform/license</module>
         <module>platform/recommendations</module>
         <module>platform/profile</module>
