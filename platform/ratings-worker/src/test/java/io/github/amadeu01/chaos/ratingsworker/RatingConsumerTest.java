@@ -51,6 +51,19 @@ class RatingConsumerTest {
         });
     }
 
+    @Test
+    void semanticallyInvalidMessageIsDroppedAndDoesNotBlockTheQueue() {
+        send("{}");
+        send("{\"viewerId\":\"v-3\",\"titleId\":\"t13\",\"stars\":9}");
+        send("{\"viewerId\":\"v-3\",\"titleId\":\"t14\",\"stars\":2}");
+
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(storedRatings()).anySatisfy(item -> assertThat(item.get("titleId").s()).isEqualTo("t14"));
+            assertThat(storedRatings()).noneSatisfy(item -> assertThat(item.get("titleId").s()).isEqualTo("t13"));
+            assertThat(messagesLeftInQueue()).isZero();
+        });
+    }
+
     private void send(String body) {
         sqs.sendMessage(request -> request.queueUrl(queueUrl()).messageBody(body));
     }

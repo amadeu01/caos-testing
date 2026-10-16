@@ -57,11 +57,22 @@ public class RatingConsumer {
             LOG.warnf("Dropping malformed rating message %s", message.messageId());
             return;
         }
+        if (!isValid(rating)) {
+            LOG.warnf("Dropping malformed rating message %s", message.messageId());
+            return;
+        }
         dynamo.putItem(request -> request.tableName(TABLE).item(Map.of(
                 "id", AttributeValue.fromS(message.messageId()),
                 "viewerId", AttributeValue.fromS(rating.viewerId()),
                 "titleId", AttributeValue.fromS(rating.titleId()),
                 "stars", AttributeValue.fromN(Integer.toString(rating.stars())))));
+    }
+
+    private static boolean isValid(Rating rating) {
+        return rating != null
+                && rating.viewerId() != null && !rating.viewerId().isBlank()
+                && rating.titleId() != null && !rating.titleId().isBlank()
+                && rating.stars() >= 1 && rating.stars() <= 5;
     }
 
     private String queueUrl() {
